@@ -1,0 +1,9 @@
+"dialog_keys";"type";"gesture file";"LED file";"Alternative 1";"Alternative 2";"Alternative 3";"Alternative 4"
+"keyMainQuestion";"question";"QuestionGesture_2.py";"QuestionLed_2.csv";"Shall I call the doctor?";;;
+"keyAccept";"message";"HappyGesture_3.py";"HappyLed_2.csv";"Please wait while I contact the call center!";;;
+"keyDeny";"message";"SadGesture_2.py";"SadLed_2.csv";"OK; but you should take care today.";;;
+"dialog_logic";"reply 1";"next_key 1";"reply 2";"next_key 2";"reply 3";"next_key 3";
+"keyMainQuestion";"yes";"keyAccept";"no";"keyDeny";"did not understand";"keyDeny";
+"message_logic";;;;;;;
+"keyAccept";"endYes";;;;;;
+"keyDeny";"endNo";;;;;;

@@ -1,0 +1,11 @@
+"dialog_keys";"type";"gesture file";"LED file";"Alternative 1";"Alternative 2";"Alternative 3";"Alternative 4"
+"keyMeasurement";"question";"QuestionGesture_4.py";"QuestionLed_4.csv";"Could we start the measurement now?";"Should we perform a measurement now?";"Do you have time to perform a measurement now?";
+"keyConfirm";"question";"QuestionGesture_1.py";"QuestionLed_1.csv";"Are you sure?";"Really not?";"But it would be good for you; are you sure you don't want to do it?";
+"keyAccept";"message";"CommandGesture_3.py";"HappyLed_2.csv";"Great! Please put the device on your finger.";;;
+"keyDeny";"message";"SadGesture_2.py";"SadLed_2.csv";"OK for now; I'll remind you later!";"I will ask you again later!";;
+"dialog_logic";"reply 1";"next_key 1";"reply 2";"next_key 2";"reply 3";"next_key 3";
+"keyMeasurement";"yes";"keyAccept";"no";"keyConfirm";"did not understand";"keyDeny";
+"keyConfirm";"yes";"keyDeny";"no";"keyAccept";"did not understand";"keyDeny";
+"message_logic";;;;;;;
+"keyAccept";"endYes";;;;;;
+"keyDeny";"endNo";;;;;;

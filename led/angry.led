@@ -1,0 +1,2 @@
+groupname(see help.txt);r;g;b;frequency(0 = continuously on); duration
+FaceLeds;255;0;0;5;5 

@@ -1,0 +1,8 @@
+dialog_keys;type;gesture file;LED file;Alternative 1;Alternative 2;Alternative 3;Alternative 4
+keyMainQuestion;question;QuestionGesture_2.py;QuestionLed_2.csv;Are you ready now to do your exercise?;Shall we dance?;;
+keyConfirm;question;CommandGesture_4.py;surprise.led;But exercise is good for you! Shall we exercise now?;;;
+keyAccept;message;HappyGesture_4.py;HappyLed_5.csv;Great! I will show the exercise for you.    Let's do it with me!;;;
+keyDeny;message;SadGesture_2.py;SadLed_2.csv;"OK; no exercises now.";;;
+dialog_logic;reply 1;next_key 1;reply 2;next_key 2;reply 3;next_key 3;
+keyMainQuestion;yes;keyAccept;no;keyConfirm;did not understand;keyDeny;
+keyConfirm;yes;keyAccept;no;keyDeny;did not understand;keyDeny;

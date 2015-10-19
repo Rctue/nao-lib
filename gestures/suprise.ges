@@ -1,0 +1,13 @@
+names = list()
+times = list()
+keys = list()
+
+names.append("HeadPitch")
+times.append([ 0.66667, 2.00000])
+keys.append([ [ 0.00873, [ 3, -0.22222, 0.00000], [ 3, 0.44444, 0.00000]], [ -0.20071, [ 3, -0.44444, 0.00000], [ 3, 0.00000, 0.00000]]])
+
+try:
+  motion = ALProxy("ALMotion")
+  moveId = motion.post.angleInterpolationBezier(names, times, keys);
+except BaseException, err:
+  pass

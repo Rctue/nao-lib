@@ -1,0 +1,8 @@
+"dialog_keys";"type";"gesture file";"LED file";"Alternative 1";"Alternative 2";"Alternative 3";"Alternative 4"
+"keyDevice";"question";"QuestionGesture_4.py";"QuestionLed_4.csv";"The measurement failed. Do you have the device on the finger?";"I did not receive the value. Did you put on the device?";;
+"keyConfirm";"question";"CommandGesture_4.py";"NeutralLed_5.csv";"Please put the device on your finger. Say Yes when you are ready; or No to abort.";"Please put your finger in the pulseoximeter. Say Yes when you are ready; or No to abort.";;
+"keyAccept";"message";"CommandGesture_4.py";"HappyLed_5.csv";"OK; I will try to measure again. Keep the device on your finger. Please wait.";"OK; I will try again. Keep the device on your finger. Just a minute please.";;
+"keyDeny";"message";"SadGesture_2.py";"SadLed_2.csv";"Measuring failed. No exercises today.";"I'm sorry; I could not get a value. We will not do any exercises today.";;
+"dialog_logic";"reply 1";"next_key 1";"reply 2";"next_key 2";"reply 3";"next_key 3";
+"keyDevice";"yes";"keyAccept";"no";"keyConfirm";"did not understand";"keyDeny";
+"keyConfirm";"yes";"keyAccept";"no";"keyDeny";"did not understand";"keyDeny";

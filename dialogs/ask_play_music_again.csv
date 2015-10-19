@@ -1,0 +1,9 @@
+"dialog_keys";"type";"gesture file";"LED file";"Alternative 1";"Alternative 2";"Alternative 3";"Alternative 4"
+"keyMainQuestion";"question";;"QuestionLed_4.csv";"would you like to resume the music?";;;
+"keyAccept";"message";;"HappyLed_2.csv";"OK. I'm playing it!";;;
+"keyDeny";"message";;"SadLed_2.csv";"OK. I will not playing it.";;;
+"dialog_logic";"reply 1";"next_key 1";"reply 2";"next_key 2";"reply 3";"next_key 3";
+"keyMainQuestion";"yes";"keyAccept";"no";"keyDeny";"did not understand";"keyDeny";
+"message_logic";;;;;;;
+"keyAccept";"endYes";;;;;;
+"keyDeny";"endNo";;;;;;

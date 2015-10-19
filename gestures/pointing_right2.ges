@@ -1,0 +1,40 @@
+import naoqi
+
+names = list()
+times = list()
+keys = list()
+
+
+names.append("HeadYaw")
+times.append([ 2.50000])
+keys.append([ [ -0.07854, [ 3, -0.83333, 0.00000], [ 3, 0.00000, 0.00000]]])
+
+names.append("HeadPitch")
+times.append([ 2.50000])
+keys.append([ [ 0.12566, [ 3, -0.83333, 0.00000], [ 3, 0.00000, 0.00000]]])
+
+names.append("LShoulderPitch")
+times.append([ 0.50000])
+keys.append([ [ 1.56381, [ 3, -0.16667, 0.00000], [ 3, 0.00000, 0.00000]]])
+
+names.append("RShoulderPitch")
+times.append([ 1.00000])
+keys.append([ [ 0.28623, [ 3, -0.33333, 0.00000], [ 3, 0.00000, 0.00000]]])
+
+names.append("RShoulderRoll")
+times.append([ 0.50000])
+keys.append([ [ -0.00873, [ 3, -0.16667, 0.00000], [ 3, 0.00000, 0.00000]]])
+
+names.append("RElbowRoll")
+times.append([ 1.50000])
+keys.append([ [ 0.51313, [ 3, -0.50000, 0.00000], [ 3, 0.00000, 0.00000]]])
+
+names.append("RHand")
+times.append([ 2.00000])
+keys.append([ [ 0.01396, [ 3, -0.66667, 0.00000], [ 3, 0.00000, 0.00000]]])
+
+try:
+  motion = ALProxy("ALMotion")
+  moveId = motion.post.angleInterpolationBezier(names, times, keys);
+except BaseException, err:
+  pass

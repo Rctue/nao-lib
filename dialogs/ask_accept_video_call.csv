@@ -1,0 +1,9 @@
+"dialog_keys";"type";"gesture file";"LED file";"Alternative 1";"Alternative 2";"Alternative 3";"Alternative 4"
+"keyMainQuestion";"question";;"QuestionLed_4.csv";"There is an incoming call. Do you want to accept it?";;;
+"keyAccept";"message";;"HappyLed_4.csv";"OK. You can already talk while I'm coming to you!";;;
+"keyDeny";"message";;"SadLed_2.csv";"OK. I will not make the connection.";;;
+"dialog_logic";"reply 1";"next_key 1";"reply 2";"next_key 2";"reply 3";"next_key 3";
+"keyMainQuestion";"yes";"keyAccept";"no";"keyDeny";"did not understand";"keyDeny";
+"message_logic";;;;;;;
+"keyAccept";"endYes";;;;;;
+"keyDeny";"endNo";;;;;;
