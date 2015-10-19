@@ -1,5 +1,5 @@
 # nao-lib
-master commit of nao-lib
+nao-lib contains a set of Python files for interfacing with the Nao robot.
 
 # Description
 nao.py contains a set of frequently used routines that build on Aldebaran's naoqi.py for interfacing with the Nao robot.
@@ -10,4 +10,8 @@ nao_nocv.py is the same without the routines that use openCV
 /modules is an outdated attempt to do the same
 
 The opencv version uses the haarcascade file for face detection
-The headpose estimation uses a neural network, the parameters of which are contained in PythonNN.mat
+
+# Under development
+nao2.py is a rewrite of nao.py which separates the broker and proxies from the interface and adds event functionality.
+NaoScript.py contains the scripting routines.
+Monitor.py contains tools to record the state of the robot.
