@@ -53,25 +53,9 @@ class Region:
         self.y = 0
         self.width = 0
         self.height = 0
-################################################################################
-## nao.InitVideo() initialises the cv image and sets the variables on Nao.
-## It allows you to give up the resolution. But first execute nao.InitProxy()
-################################################################################
-def InitVideo(resolution):
-    global key
-    global nameId
-    global cameraProxy
-    global cv_im
 
+def Nao2CVImage(img,resolution):
     resolutionar = [160,120],[320,240],[640,480]
-    framerate=30
-    key=0
-    random.random()*10
-    try:
-        nameId = cameraProxy.subscribe("python_GVM2"+str(random.random()*10), resolution, 0, 10) #0, 0, 10
-    except NameError:
-        print 'ALVideoDevice proxy undefined. Are you running a simulated naoqi?'
-        return None
     try:
         cv_im = cv.CreateImageHeader((resolutionar[resolution][0],
                                       resolutionar[resolution][1]),
@@ -79,36 +63,6 @@ def InitVideo(resolution):
     except:
         print "Cannot create image header"
         return None
-
-#################################################################################
-## nao.GetImage() gets the image from Nao. You will fist need to execute
-## nao.Initvideo()
-#################################################################################
-def GetImage():
-    global img
-    global nameId
-    global cv_im
-
-    gotimage = False
-    count = 0
-
-    while not gotimage and count < 10:
-        try:
-            img =cameraProxy.getImageRemote(nameId)
-            #pi=Image.frombuffer("L",(img[0],img[1]),img[6]) # original version leading to warnings about future incompatibilities
-            #pi=Image.frombuffer("L",(img[0],img[1]),img[6],"raw", "L", 0, -1) # -1 is upside down orientation, 1 upright orientation
-            #pi=Image.fromstring("L",(img[0],img[1]),img[6])
-
-            gotimage =True
-        except NameError:
-            print 'ALVideoDevice proxy undefined. Are you running a simulated naoqi?'
-            break
-        except:
-            count = count + 1
-            print "problems with video buffer!! Did you initialize nao.InitVideo() the video first?"
-    #cv.SetData(cv_im, pi.tostring()) # conversion using PIL not necessary, pass img[6] directly to cv_im
-    #cv.Flip(cv_im,cv_im,0) # not needed when using from string
-    #key = cv.WaitKey(10) # only useful after a cv.ShowImage("test",cv_im)
     cv.SetData(cv_im, img[6])
 
     return cv_im
@@ -250,98 +204,7 @@ def Framerate(frame):
                cv.RGB(0,0,255))
     return frame
 
-################################################################################
-## Initializes the track function it stiffens the joints, gathers the IDPose
-################################################################################
-def InitTrack():
-    global xtargetold
-    global ytargetold
-    xtargetold = 0
-    ytargetold = 0
-    # Stiffening the head joints
-    motionProxy.stiffnessInterpolation('HeadYaw', 1.0, 1.0)
-    motionProxy.stiffnessInterpolation('HeadPitch', 1.0, 1.0)
-    interpol_time = 0.5
-    names  = ["HeadYaw","HeadPitch"]
-################################################################################
-## Releasing stiffness of the head joints
-################################################################################
-def EndTrack():
-    motionProxy.stiffnessInterpolation('HeadYaw', 0.0, 1.0)
-    motionProxy.stiffnessInterpolation('HeadPitch', 0.0, 1.0)
 
-################################################################################
-## If the tracking function is initialised you can let nao follow a point in
-## the camera stream the boolean "detected" specifies whether the target
-## was detected. "frametime" is the time between frames.
-################################################################################
-def Track(target_loc, detected, speed = 5, min_move = 0.04):
-    """
-    target_loc =  the location Nao's head should move to in radians
-    detected = is the head detected, If False target_loc is not used and speed of movement gradually decreases
-    (optional) speed = the speed of the movement
-    (optional) min_move = the minimal angle of difference between the target_loc and current location for movements to occur.
-
-    """
-    global xtargetold
-    global ytargetold
-    global time_old_track
-    global id_pose
-    global interpol_time
-    global start_mov_t
-
-    interpol_time = 1.0/speed
-
-    xtarget = target_loc[0]
-    ytarget = target_loc[1]
-
-    try:
-        frametime = time() - time_old_track
-        time_old_track = time()
-    except:
-        print "Not able to determine frame rate. Guessing..."
-        frametime = 0.15
-
-    if detected == False:
-        xtarget = xtargetold-xtargetold*(frametime)
-        ytarget = ytargetold-ytargetold*(frametime)
-
-    xtargetold = xtarget
-    ytargetold = ytarget
-
-    if ((xtarget > min_move or xtarget < -min_move) or (ytarget > min_move or ytarget < -min_move)):
-        names  = ["HeadYaw","HeadPitch"]
-
-        try:
-            id_pose
-        except NameError:
-            id_pose = None
-
-        if id_pose != None:
-            #motionProxy.stop(id_pose)
-            pass
-
-        try:
-            id_pose = motionProxy.post.angleInterpolation(names, [-xtarget/2.5,ytarget/2.5] , interpol_time, False)
-        except RuntimeError,e:
-            print "Kan hoofd niet draaien"
-        start_mov_t = time()
-################################################################################
-
-
-
-## Is used to see if Nao's head is moving.
-################################################################################
-def MovingHead():
-    time_mov = time()-start_mov_t
-    if time_mov > 2*interpol_time:
-        return False
-    else:
-        return True
-    return
-###############################################################################
-## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 def FindObject(frame):
     global old_frame
