@@ -1,4 +1,4 @@
-## Nao functions version 1.38
+## Nao functions version 1.40
 ## change log:
 ## 1.02: Added class "Region"
 ## 1.02: Resolution stuff.
@@ -36,6 +36,10 @@
 ## 1.34: Added functions MoveHead() to move nao's head and GetYaw() to request the yaw of nao's head 
 ## 1.35: Added functions SetTTSVolume() and GetTTSVolume() for checking and controlling the volume of the Text to Speech
 ## 1.36: Added functions SetMusicVolume() and GetMusicVolume() for checking and controlling the volume of the Music
+## 1.37: Updated FindFace to include arbitrary offset and gain. Default changed to up -0.2.
+## 1.38: Speed of GetImage() improved. Removed dependency on Python Image Library
+## 1.39: Removed "from naoqi import xxx" statements.
+## 1.40: Added ALRobotPosture proxy, GoToPosture and proper InitPose() and Crouch(); InitProxy rewritten 
 
 ### nao_nocv.py
 ## 1.0 removed dependencies on OpenCV and Image libraries. InitVideo and GetImage modified, but broken.
@@ -94,7 +98,6 @@ class ResolutionCamera:
         self.res_320x240 = 1  #kQVGA
         self.res_640x480 = 2  #kVGA
         self.res_1280x960 = 3 #k4VGA
-
 
 resolution = ResolutionCamera()
 
@@ -1235,7 +1238,7 @@ def DetectLandMark():
                                p[0][5]  #orientation about vertical w.r. Nao's head
                                ])
     return detected, timestamp, markerInfo
-        
+
 
 if __name__ == "__main__":
     print GetAvailableModules(), "\n"
