@@ -66,6 +66,9 @@ import naoqi
 
 from collections import deque
 
+
+#__naoqi_version__='1.14'
+__naoqi_version__='2.1'
 __nao_module_name__ ="Nao Library"
 
 gftt_list = list()
@@ -165,11 +168,14 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     global sonarProxy
     global postureProxy
     global landmarkProxy
+    global trackerProxy
+    global soundProxy
+    global soundLocalizationProxy
     
     global ALModuleList
     global proxyDict
     
-    ALModuleList=["ALTextToSpeech","ALAudioDevice","ALMotion","ALMemory","ALFaceDetection","ALVideoDevice","ALLeds","ALFaceTracker","ALSpeechRecognition","ALAudioPlayer","ALVideoRecorder","ALSonar","ALRobotPosture","ALLandMarkDetection","ALSoundDetection","ALAudioSourceLocalization"]
+    ALModuleList=["ALTextToSpeech","ALAudioDevice","ALMotion","ALMemory","ALFaceDetection","ALVideoDevice","ALLeds","ALFaceTracker","ALSpeechRecognition","ALAudioPlayer","ALVideoRecorder","ALSonar","ALRobotPosture","ALLandMarkDetection","ALTracker","ALSoundDetection","ALAudioSourceLocalization"]
     proxyDict={}
     #proxyList=[None]*(len(ALModuleList))
     
@@ -201,7 +207,7 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     postureProxy=proxyDict["ALRobotPosture"]
     landmarkProxy=proxyDict["ALLandMarkDetection"]
     soundProxy=proxyDict["ALSoundDetection"]
-    soundsourceProxy=proxyDict["ALAudioSourceLocalization"]
+    soundLocalizationProxy=proxyDict["ALAudioSourceLocalization"]
 
 def InitSonar(flag=1):
     
@@ -597,6 +603,23 @@ def ALTrack(switch=1):
     else:
         return trackfaceProxy.isActive()
 
+def ALTracker(switch=1,targetName="Face", targetParam=0.1):
+    """Turn head tracking on or off. Or get status = 2"""
+    if switch == 1:
+        InitTrack()
+        # Add target to track.
+        trackerProxy.registerTarget(targetName, targetParam)
+        # Then, start tracker.
+        trackerProxy.track(targetName)
+    elif switch == 0:
+        trackerProxy.stopTracker()
+        trackerProxy.unregisterAllTargets()
+        #EndTrack()
+    else:
+        return trackfaceProxy.isActive()
+
+
+
 ##############################################################################
 ## Go to one of the predefined postures
 #############################################################################
@@ -613,13 +636,25 @@ def GoToPosture(thePosture, speed=0.5):
 
     postureProxy.goToPosture(thePosture, speed)
 
+def version(string):
+    n=string.find('.') # find first period
+    a=string[:n+1] # cut out the main version number plus period
+    b=string[n+1:].replace('.','') #remove any trailing periods
+
+    return float(a+b) # convert to float    
+
 ##############################################################################
 ## Put's Noa into its Initpose. Only use when standing or in crouch position.
 #############################################################################
 def InitPose(time_pos=0.5, speed=0.8):
     """Nao will move to initpose."""
 
-    motionProxy.setWalkTargetVelocity(0, 0, 0, 1)
+
+    if version(__naoqi_version__)<2:
+        motionProxy.setWalkTargetVelocity(0, 0, 0, 1)
+    else:
+        motionProxy.moveToward(0,0,0)
+        
     sleep(0.1)
     # set stiffness
     motionProxy.stiffnessInterpolation('Body',1.0, time_pos)
@@ -673,7 +708,11 @@ def StiffenUpperBody(stiffness = True, int_time=0.1):
 ## Nao crouches and loosens it's joints.
 ###############################################################################
 def Crouch(speed=0.8):
-    motionProxy.setWalkTargetVelocity(0, 0, 0, 1)
+
+    if version(__naoqi_version__)<2:
+        motionProxy.setWalkTargetVelocity(0, 0, 0, 1)
+    else:
+        motionProxy.moveToward(0,0,0)
     sleep(0.1)
     GoToPosture("Crouch", speed)
     motionProxy.stiffnessInterpolation('Body',0, 0.5)
@@ -753,7 +792,10 @@ def Move(dx=0, dy=0, dtheta=0, freq=1):
     with a certain speed.
     """
     
-    motionProxy.setWalkTargetVelocity(dx, dy, dtheta, freq)
+    if version(__naoqi_version__)<2:
+        motionProxy.setWalkTargetVelocity(dx, dy, dtheta, freq)
+    else:
+        motionProxy.moveToward(dx,dy,dtheta)
     
 def ReadSonar():    
     
@@ -775,10 +817,17 @@ def Walk(dx=0,dy=0,dtheta=0,post=False):
     Allows Nao to move in a certain direction.
     
     """
-    if post==False:
-        motionProxy.walkTo(dx, dy, dtheta)
+    if version(__naoqi_version__)<2:
+        if post==False:
+            motionProxy.walkTo(dx, dy, dtheta)
+        else:
+            motionProxy.post.walkTo(dx, dy, dtheta)
     else:
-        motionProxy.post.walkTo(dx, dy, dtheta)
+        if post==False:
+            motionProxy.moveTo(dx, dy, dtheta)
+        else:
+            motionProxy.post.moveTo(dx, dy, dtheta)
+
 
 ##################################################################################
 ## Moves nao head yaw and pitch of the provided values yaw_val and pitch_val
@@ -1208,6 +1257,7 @@ def InitSpeech(wordList=["yes","no","hello NAO","goodbye NAO"],the_language="Eng
     
 def DetectSpeech():
     global memoryProxy
+    
     try:
         #getData
         result=memoryProxy.getData("WordRecognized")
@@ -1222,10 +1272,14 @@ def DetectSpeech():
 
 def InitLandMark(period = 500):
     # Subscribe to the ALLandMarkDetection extractor
-    landmarkProxy.subscribe("Test_Mark", period, 0.0 )
+    global landmarkProxy
+    
+    landmarkProxy.subscribe(__nao_module_name__ , period, 0.0 )
 
 def DetectLandMark():
     # Get data from landmark detection (assuming face detection has been activated).
+    global memoryProxy
+
     data = memoryProxy.getData("LandmarkDetected")
 
     if len(data)==0:
@@ -1249,6 +1303,8 @@ def DetectLandMark():
 
 def InitSoundDetection(switch=1):
     # Subscribe to the ALSoundDetection
+    global soundProxy
+    
     if switch==1:
         try:
             soundProxy.subscribe(__nao_module_name__ )
@@ -1294,6 +1350,8 @@ def DetectSound():
 
 def InitSoundLocalization(switch=1):
     # Subscribe to the ALSoundDetection
+    global soundLocalizationProxy
+    
     if switch==1:
         try:
             soundLocalizationProxy.subscribe(__nao_module_name__ )
@@ -1308,6 +1366,8 @@ def InitSoundLocalization(switch=1):
 
 def DetectSoundLocation():
     # Get data from landmark detection (assuming face detection has been activated).
+    global memoryProxy
+    
     data = memoryProxy.getData("SoundLocated")
 
     ##The SoundDetected key is organized as follows:
