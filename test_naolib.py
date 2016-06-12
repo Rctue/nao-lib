@@ -65,12 +65,37 @@ def testplayer(filename="chopin.mp3"):
     print "Stop."
     nao.StopPlay()
 
+def testwalking():
+    print "Test basic walking ... ",
+    try:
+        nao.InitPose()
+        nao.Move(1,0,0.2)
+        time.sleep(3)
+        nao.Move(0,0,0)
+        nao.Walk(-0.3, 0, -0.2)
+        nao.Crouch()
+        succeeded=True
+        print "succeeded."
+    except:
+        succeeded=False
+        print "failed."
+
+    return succeeded
+
+    
+
     
 if __name__=="__main__":
-    nao.InitProxy('192.168.0.115')
+#ip="192.168.0.115"
+#    port=9559
+    ip="127.0.0.1"
+    port=50021
+    
+    nao.InitProxy(ip,[0],port)
+    result=testwalking()
     result=testsonar(5)
 #    result=testsound(5)
     result=testcamera()
-#    result=testplayer()
+    result=testplayer()
     
     
