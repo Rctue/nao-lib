@@ -1,4 +1,4 @@
-import nao_nocv_1_3 as nao
+import nao_nocv_2_0 as nao
 import time
 
 
@@ -13,12 +13,22 @@ def testsonar(maxcount=10):
 
 def testsound(maxcount=10):
     nao.InitSoundDetection()
+    print "Detecting sound ... ",
     count=0
+    succeeded=False
     while count<maxcount:
         detected, timestamp, soundinfo= nao.DetectSound()
-        print detected, timestamp, soundinfo
+        if detected:
+            print timestamp, soundinfo
+            succeeded=True
         count=count+1
+        time.sleep(0.1)
     nao.InitSoundDetection(False)
+    if succeeded:
+        print "sound detected."
+    else:
+        print "no detection."
+    return succeeded
 
 def testcamera(maxcount=10):
     max_resolution=nao.resolution.very_high
@@ -82,20 +92,61 @@ def testwalking():
 
     return succeeded
 
-    
+def testgestures():
+    gestures=nao.GetAvailableGestures()
+    nao.InitPose()
+    for g in gestures:
+        print "gesture ", g, 
+        nao.RunMovement(g, post=False)
+        print " done."
+        time.sleep(3)
+
+    nao.Crouch()
+        
+def testleds():
+    leds=nao.GetAvailableLEDPatterns()
+    for l in leds:
+        print "LED pattern ", l, 
+        nao.RunLED(l)
+        time.sleep(3)
+        print " done."
+
+def testspeech(maxcount=10):
+    nao.InitSpeech()
+    count=0
+    nao.asr.subscribe("MyModule")
+    while count<maxcount:
+        nao.memoryProxy.insertData("WordRecognized",[])
+
+        result=nao.DetectSpeech()
+        if len(result)>0:
+            print result
+            nao.asr.unsubscribe("MyModule")
+            nao.Say("You said: "+result[0]+".")
+            time.sleep(0.2)
+            nao.asr.subscribe("MyModule")
+        time.sleep(0.2)
+        count=count+1
+    nao.asr.unsubscribe("MyModule")
 
     
+    
 if __name__=="__main__":
-#ip="192.168.0.115"
+#   ip="192.168.0.115"
 #    port=9559
-    ip="127.0.0.1"
-    port=50021
+#    ip="127.0.0.1"
+#    port=50021
+    ip="192.168.1.226"
+    port=9559
     
     nao.InitProxy(ip,[0],port)
-    result=testwalking()
-    result=testsonar(5)
-#    result=testsound(5)
-    result=testcamera()
-    result=testplayer()
+#    result=testwalking()
+#    result=testsonar(5)
+#    result=testcamera()
+#    result=testplayer()
+#    result=testsound(50)
+#    result=testleds()
+    #result=testgestures()
+    result=testspeech()
     
     

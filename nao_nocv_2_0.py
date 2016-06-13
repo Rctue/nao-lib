@@ -208,6 +208,7 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     landmarkProxy=proxyDict["ALLandMarkDetection"]
     soundProxy=proxyDict["ALSoundDetection"]
     soundLocalizationProxy=proxyDict["ALAudioSourceLocalization"]
+    trackerProxy=proxyDict["ALTracker"]
 
 def InitSonar(flag=1):
     
@@ -287,6 +288,9 @@ def ALFacePosition(switch = True, period = 100):
         faceProxy.unsubscribe("Test_Face")
         alface_subscribed == False
     #print " location face: " , location_face
+    if location_face==None:
+        location_face=[]
+        print "modified"
     if len(location_face) >= 2: # Changed with respect to old naoqi versions
         return [-location_face[1][0][0][1],location_face[1][0][0][2]], True
         
@@ -594,17 +598,28 @@ def MovingHead():
 ################################################################################
 def ALTrack(switch=1):
     """Turn head tracking on or off. Or get status = 2"""
-    if switch == 1:
-        InitTrack()
-        trackfaceProxy.startTracker()
-    elif switch == 0:
-        trackfaceProxy.stopTracker()
-        #EndTrack()
-    else:
-        return trackfaceProxy.isActive()
+##    if switch == 1:
+##        InitTrack()
+##        trackfaceProxy.startTracker()
+##    elif switch == 0:
+##        trackfaceProxy.stopTracker()
+##        #EndTrack()
+##    else:
+##        return trackfaceProxy.isActive()
+    Tracker(switch)
 
-def ALTracker(switch=1,targetName="Face", targetParam=0.1):
-    """Turn head tracking on or off. Or get status = 2"""
+def Tracker(switch=1,targetName="Face", targetParam=0.1):
+    """Turn tracker on or off. Or get status = 2"""
+
+    
+##Target    Parameters Comment
+##RedBall   diameter of ball (meter)    Used to compute the distance between robot and ball. 
+##Face      width of face (meter)       Used to compute the distance between robot and face. 
+##LandMark  [size, [LandMarkId, ...]]   size is used to compute the distance between robot and LandMark. LandMarkId to specify the LandMark to track. 
+##LandMarks [[size, [LandMarkId, ...]], [size, [LandMarkId, ...]]] Same parameters as LandMark. One array by LandMark. 
+##People    [peopleId, ...]             Used to track a specific people. 
+##Sound     [distance, confidence]      distance is used to estimate sound position and confidence to filter sound location. 
+
     if switch == 1:
         InitTrack()
         # Add target to track.
@@ -1282,6 +1297,8 @@ def DetectLandMark():
 
     data = memoryProxy.getData("LandmarkDetected")
 
+    if data==None:
+        data=[] # otherwise the next statement fails ...        
     if len(data)==0:
         detected=False
         timestamp=time()
@@ -1304,7 +1321,8 @@ def DetectLandMark():
 def InitSoundDetection(switch=1):
     # Subscribe to the ALSoundDetection
     global soundProxy
-    
+
+    soundProxy.setParameter("Sensitivity", 0.3)    
     if switch==1:
         try:
             soundProxy.subscribe(__nao_module_name__ )
@@ -1331,14 +1349,15 @@ def DetectSound():
     ##index is the index (in samples) of either the sound start (if type is equal to 1) or the sound end (if type is equal to 0),
     ##time is the detection time in micro seconds
     ##confidence gives an estimate of the probability [0;1] that the sound detected by the module corresponds to a real sound.
-
+    if data==None:
+        data=[] # otherwise the next statement fails ... 
     if len(data)==0:
         detected=False
-        timestamp=time.time()
+        timestamp=time()
         soundInfo=[]
     else:
         detected=True
-        timestamp=time.time()
+        timestamp=time()
         soundInfo=[]
         for snd in data:
             soundInfo.append([ snd[0], #index of sound start/end
@@ -1379,14 +1398,16 @@ def DetectSoundLocation():
     ##  [Head Position[6D]]
     ##]
 
+    if data==None:
+        data=[] # otherwise the next statement fails ... 
     if len(data)==0:
         detected=False
-        timestamp=time.time()
+        timestamp=time()
         soundInfo=[]
     else:
         detected=True
         #timestamp=data[0][0]+1E-6*data[0][1] #this works but only if a sound is located
-        timestamp=time.time()
+        timestamp=time()
         soundInfo=[]
         for snd in data:
             soundInfo.append([ snd[1][0], #azimuth angle
