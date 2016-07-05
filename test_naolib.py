@@ -30,6 +30,25 @@ def testsound(maxcount=10):
         print "no detection."
     return succeeded
 
+def testsoundlocalization(maxcount=10):
+    nao.InitSoundLocalization()
+    print "Detecting sound location ... ",
+    count=0
+    succeeded=False
+    while count<maxcount:
+        detected, timestamp, soundinfo= nao.DetectSoundLocation()
+        if detected:
+            print timestamp, soundinfo
+            succeeded=True
+        count=count+1
+        time.sleep(0.1)
+    nao.InitSoundLocalization(False)
+    if succeeded:
+        print "sound detected."
+    else:
+        print "no detection."
+    return succeeded
+
 def testcamera(maxcount=10):
     max_resolution=nao.resolution.very_high
 
@@ -111,14 +130,17 @@ def testleds():
         time.sleep(3)
         print " done."
 
-def testspeech(maxcount=10):
-    nao.InitSpeech()
+def testspeech(maxcount=50):
+    wordList=["yes","no","hello", "Nao","goodbye"]
+    the_language="English"
+    nao.InitSpeech(wordList,the_language)
     count=0
     nao.asr.subscribe("MyModule")
     while count<maxcount:
-        nao.memoryProxy.insertData("WordRecognized",[])
+        #nao.memoryProxy.insertData("WordRecognized",[])
 
         result=nao.DetectSpeech()
+        #print result
         if len(result)>0:
             print result
             nao.asr.unsubscribe("MyModule")
@@ -136,7 +158,7 @@ if __name__=="__main__":
 #    port=9559
 #    ip="127.0.0.1"
 #    port=50021
-    ip="192.168.1.226"
+    ip="192.168.0.118"
     port=9559
     
     nao.InitProxy(ip,[0],port)
@@ -144,7 +166,8 @@ if __name__=="__main__":
 #    result=testsonar(5)
 #    result=testcamera()
 #    result=testplayer()
-#    result=testsound(50)
+    result=testsound(50)
+    result=testsoundlocalization(50)
 #    result=testleds()
     #result=testgestures()
     result=testspeech()

@@ -1231,7 +1231,7 @@ def GetAvailableModules():
             dir_file.append(module_files)
     return dir_file
     
-def InitSpeech(wordList=["yes","no","hello NAO","goodbye NAO"],the_language="English"):
+def InitSpeech(wordList=["yes","no","hello NAO","goodbye NAO"],the_language="English",wordSpotting=False):
     global speechProxy
     global memoryProxy
     
@@ -1248,7 +1248,7 @@ def InitSpeech(wordList=["yes","no","hello NAO","goodbye NAO"],the_language="Eng
     tts.setLanguage(the_language)
 
     # To set the words that should be recognized, use the setWordListAsVocabulary method.
-    asr.setWordListAsVocabulary(wordList)
+    asr.setVocabulary(wordList,wordSpotting)
 
     #Note:
     #The following feature (the usage of the "loadVocabulary()" function) is not available for Chinese and Japanese.
@@ -1276,7 +1276,7 @@ def DetectSpeech():
     try:
         #getData
         result=memoryProxy.getData("WordRecognized")
-        if len(result)>1:
+        if len(result)>0:
             memoryProxy.insertData("WordRecognized",[])
 
     except RuntimeError,e:
@@ -1364,6 +1364,7 @@ def DetectSound():
                                snd[1], #type: 1=start, 0=end
                                snd[2]  #confidence: probability that there was a sound
                                ])
+        memoryProxy.insertData("SoundDetected",[]) #clear memory
     return detected, timestamp, soundInfo
 
 
@@ -1387,7 +1388,7 @@ def DetectSoundLocation():
     # Get data from landmark detection (assuming face detection has been activated).
     global memoryProxy
     
-    data = memoryProxy.getData("SoundLocated")
+    data = memoryProxy.getData("ALSoundLocalization/SoundLocated")
 
     ##The SoundDetected key is organized as follows:
     ##
@@ -1414,6 +1415,7 @@ def DetectSoundLocation():
                                snd[1][1], #elvation angle
                                snd[1][2], #confidence: probability that there was a sound
                                snd[2]])   #Headposition 6D
+        memoryProxy.insertData("ALSoundLocalization/SoundLocated",[]) #clear memory
     return detected, timestamp, soundInfo
 
 if __name__ == "__main__":
