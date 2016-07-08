@@ -50,6 +50,7 @@
     ## 1.39: Removed "from naoqi import xxx" statements.
 ## 1.2 updated to match nao.py version 1.40
         ## 1.40: Added ALRobotPosture proxy, GoToPosture and proper InitPose() and Crouch(); InitProxy rewritten;
+## 1.3 updated to match nao.py version 1.41
         ## 1.41: Added Landmark detection, Sound localization  and Sound detection 
 
 #import cv

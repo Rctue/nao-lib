@@ -50,6 +50,7 @@
     ## 1.39: Removed "from naoqi import xxx" statements.
 ## 1.2 updated to match nao.py version 1.40
         ## 1.40: Added ALRobotPosture proxy, GoToPosture and proper InitPose() and Crouch(); InitProxy rewritten;
+## 1.3 updated to match nao.py version 1.41
         ## 1.41: Added Landmark detection, Sound localization  and Sound detection 
 
 #import cv
@@ -67,7 +68,6 @@ import naoqi
 from collections import deque
 
 
-#__naoqi_version__='1.14'
 __naoqi_version__='2.1'
 __nao_module_name__ ="Nao Library"
 
@@ -210,7 +210,7 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     soundLocalizationProxy=proxyDict["ALAudioSourceLocalization"]
     trackerProxy=proxyDict["ALTracker"]
 
-def InitSonar(flag=1):
+def InitSonar(flag=True):
     
     #period = 100
     #precision = 0.1
@@ -220,10 +220,10 @@ def InitSonar(flag=1):
     else:
         try:
             sonarProxy.unsubscribe("test4" ) 
-            flag=0
+            flag=False
         except:
             print "Sonar already unsubscribed"
-            flag=0
+            flag=False
     return flag
    
 #################################################################################
@@ -290,12 +290,17 @@ def ALFacePosition(switch = True, period = 100):
     #print " location face: " , location_face
     if location_face==None:
         location_face=[]
-        print "modified"
     if len(location_face) >= 2: # Changed with respect to old naoqi versions
         return [-location_face[1][0][0][1],location_face[1][0][0][2]], True
         
     else:
         return [], False
+        
+def DetectFace(switch = True, period = 100):
+	facePosition, detected = ALFacePosition(switch, period)
+	timestamp=time()
+	
+	return detected, timestamp, facePosition # for consistency with DetectSound DetectLandmark etc
 
 ###############################################################################
 ## EyesLED() can change the color of the leds. The color parameter sets
@@ -633,8 +638,6 @@ def Tracker(switch=1,targetName="Face", targetParam=0.1):
     else:
         return trackfaceProxy.isActive()
 
-
-
 ##############################################################################
 ## Go to one of the predefined postures
 #############################################################################
@@ -664,13 +667,8 @@ def version(string):
 def InitPose(time_pos=0.5, speed=0.8):
     """Nao will move to initpose."""
 
-
-    if version(__naoqi_version__)<2:
-        motionProxy.setWalkTargetVelocity(0, 0, 0, 1)
-    else:
-        motionProxy.moveToward(0,0,0)
-        
-    sleep(0.1)
+	Move(0.0,0.0,0.0) # stop moving
+	sleep(0.1)
     # set stiffness
     motionProxy.stiffnessInterpolation('Body',1.0, time_pos)
     GoToPosture("Stand", speed)
@@ -723,11 +721,7 @@ def StiffenUpperBody(stiffness = True, int_time=0.1):
 ## Nao crouches and loosens it's joints.
 ###############################################################################
 def Crouch(speed=0.8):
-
-    if version(__naoqi_version__)<2:
-        motionProxy.setWalkTargetVelocity(0, 0, 0, 1)
-    else:
-        motionProxy.moveToward(0,0,0)
+	Move(0.0,0.0,0.0) # stop moving
     sleep(0.1)
     GoToPosture("Crouch", speed)
     motionProxy.stiffnessInterpolation('Body',0, 0.5)
@@ -1285,12 +1279,22 @@ def DetectSpeech():
 
     return result
 
-def InitLandMark(period = 500):
+def InitLandMark(switch=True, period = 500):
     # Subscribe to the ALLandMarkDetection extractor
     global landmarkProxy
     
     landmarkProxy.subscribe(__nao_module_name__ , period, 0.0 )
-
+    if switch:
+        try:
+			landmarkProxy.subscribe(__nao_module_name__ , period, 0.0 )
+        except:
+            print "Could not subscribe to ALLandMarkDetection"
+    else:
+        try:
+            landmarkProxy.unsubscribe(__nao_module_name__ )
+        except:
+            print "Could not unsubscribe from ALLandMarkDetection"
+            
 def DetectLandMark():
     # Get data from landmark detection (assuming face detection has been activated).
     global memoryProxy
@@ -1318,12 +1322,12 @@ def DetectLandMark():
                                ])
     return detected, timestamp, markerInfo
 
-def InitSoundDetection(switch=1):
+def InitSoundDetection(switch=True):
     # Subscribe to the ALSoundDetection
     global soundProxy
 
     soundProxy.setParameter("Sensitivity", 0.3)    
-    if switch==1:
+    if switch:
         try:
             soundProxy.subscribe(__nao_module_name__ )
         except:
@@ -1368,11 +1372,11 @@ def DetectSound():
     return detected, timestamp, soundInfo
 
 
-def InitSoundLocalization(switch=1):
+def InitSoundLocalization(switch=True):
     # Subscribe to the ALSoundDetection
     global soundLocalizationProxy
     
-    if switch==1:
+    if switch:
         try:
             soundLocalizationProxy.subscribe(__nao_module_name__ )
         except:
