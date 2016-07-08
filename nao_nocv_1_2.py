@@ -1222,12 +1222,12 @@ def DetectLandMark():
 
     if len(data)==0:
         detected=False
-        timestamp=time.time()
+        timestamp=time()
         markerInfo=[]
     else:
         detected=True
         #timestamp=data[0][0]+1E-6*data[0][1] #this works but only if a landmark is detected
-        timestamp=time.time()
+        timestamp=time()
         markerInfo=[]
         for p in data[1]:
             markerInfo.append([p[1][0], #markerID
@@ -1239,6 +1239,93 @@ def DetectLandMark():
                                ])
     return detected, timestamp, markerInfo
 
+def InitSoundDetection(switch=1):
+    # Subscribe to the ALSoundDetection
+    if switch==1:
+        try:
+            soundProxy.subscribe(__nao_module_name__ )
+        except:
+            print "Could not subscribe to ALSoundDetection"
+    else:
+        try:
+            soundProxy.unsubscribe(__nao_module_name__ )
+        except:
+            print "Could not unsubscribe from ALSoundDetection"
+
+
+def DetectSound():
+    # Get data from landmark detection (assuming face detection has been activated).
+    data = memoryProxy.getData("SoundDetected")
+
+    ##The SoundDetected key is organized as follows:
+    ##
+    ##[[index_1, type_1, confidence_1, time_1],
+    ## ...,
+    ##[index_n, type_n, confidence_n, time_n]]
+    ##
+    ##n is the number of sounds detected in the last audio buffer,
+    ##index is the index (in samples) of either the sound start (if type is equal to 1) or the sound end (if type is equal to 0),
+    ##time is the detection time in micro seconds
+    ##confidence gives an estimate of the probability [0;1] that the sound detected by the module corresponds to a real sound.
+
+    if len(data)==0:
+        detected=False
+        timestamp=time.time()
+        soundInfo=[]
+    else:
+        detected=True
+        timestamp=time.time()
+        soundInfo=[]
+        for snd in data:
+            soundInfo.append([ snd[0], #index of sound start/end
+                               snd[1], #type: 1=start, 0=end
+                               snd[2]  #confidence: probability that there was a sound
+                               ])
+    return detected, timestamp, soundInfo
+
+
+def InitSoundLocalization(switch=1):
+    # Subscribe to the ALSoundDetection
+    if switch==1:
+        try:
+            soundLocalizationProxy.subscribe(__nao_module_name__ )
+        except:
+            print "Could not subscribe to ALSoundDetection"
+    else:
+        try:
+            soundLocalizationProxy.unsubscribe(__nao_module_name__ )
+        except:
+            print "Could not subscribe to ALSoundDetection"
+
+
+def DetectSoundLocation():
+    # Get data from landmark detection (assuming face detection has been activated).
+    data = memoryProxy.getData("SoundLocated")
+
+    ##The SoundDetected key is organized as follows:
+    ##
+    ##[ [time(sec), time(usec)],
+    ##
+    ##  [azimuth(rad), elevation(rad), confidence],
+    ##
+    ##  [Head Position[6D]]
+    ##]
+
+    if len(data)==0:
+        detected=False
+        timestamp=time.time()
+        soundInfo=[]
+    else:
+        detected=True
+        #timestamp=data[0][0]+1E-6*data[0][1] #this works but only if a sound is located
+        timestamp=time.time()
+        soundInfo=[]
+        for snd in data:
+            soundInfo.append([ snd[1][0], #azimuth angle
+                               snd[1][1], #elvation angle
+                               snd[1][2], #confidence: probability that there was a sound
+                               snd[2]])   #Headposition 6D
+    return detected, timestamp, soundInfo
 
 if __name__ == "__main__":
     print GetAvailableModules(), "\n"
