@@ -1,4 +1,4 @@
-## Nao functions version 1.38
+## Nao functions version 1.41
 ## change log:
 ## 1.02: Added class "Region"
 ## 1.02: Resolution stuff.
@@ -36,13 +36,22 @@
 ## 1.34: Added functions MoveHead() to move nao's head and GetYaw() to request the yaw of nao's head 
 ## 1.35: Added functions SetTTSVolume() and GetTTSVolume() for checking and controlling the volume of the Text to Speech
 ## 1.36: Added functions SetMusicVolume() and GetMusicVolume() for checking and controlling the volume of the Music
+## 1.37: Updated FindFace to include arbitrary offset and gain. Default changed to up -0.2.
+## 1.38: Speed of GetImage() improved. Removed dependency on Python Image Library
+## 1.39: Removed "from naoqi import xxx" statements.
+## 1.40: Added ALRobotPosture proxy, GoToPosture and proper InitPose() and Crouch(); InitProxy rewritten 
+## 1.41: Added Landmark detection, Sound localization  and Sound detection
 
 ### nao_nocv.py
 ## 1.0 removed dependencies on OpenCV and Image libraries. InitVideo and GetImage modified, but broken.
 ## 1.1 incorporated updates from nao.py version 1.38
-	## 1.37: Updated FindFace to include arbitrary offset and gain. Default changed to up -0.2.
-	## 1.38: Speed of GetImage() improved. Removed dependency on Python Image Library
-	## 1.39: Removed "from naoqi import xxx" statements.
+    ## 1.37: Updated FindFace to include arbitrary offset and gain. Default changed to up -0.2.
+    ## 1.38: Speed of GetImage() improved. Removed dependency on Python Image Library
+    ## 1.39: Removed "from naoqi import xxx" statements.
+## 1.2 updated to match nao.py version 1.40
+        ## 1.40: Added ALRobotPosture proxy, GoToPosture and proper InitPose() and Crouch(); InitProxy rewritten;
+## 1.3 updated to match nao.py version 1.41
+        ## 1.41: Added Landmark detection, Sound localization  and Sound detection 
 
 #import cv
 from time import time
@@ -57,6 +66,10 @@ import csv
 import naoqi
 
 from collections import deque
+
+
+__naoqi_version__='1.14'
+__nao_module_name__ ="Nao Library"
 
 gftt_list = list()
 fast = 0
@@ -87,9 +100,14 @@ class ResolutionCamera:
         self.low = 0
         self.medium = 1
         self.high = 2
-        self.res_160x120 = 0
-        self.res_320x240 = 1
-        self.res_640x480 = 2
+        self.very_high=3
+        self.res_160x120 = 0  #kQQVGA
+        self.res_320x240 = 1  #kQVGA
+        self.res_640x480 = 2  #kVGA
+        self.res_1280x960 = 3 #k4VGA
+        self.resolutionar = [160,120],[320,240],[640,480],[1280,960]
+        self.framerate=30
+
 
 resolution = ResolutionCamera()
 
@@ -117,10 +135,22 @@ def Say(text, POST=True):
 def HeadTouch():
     head_touch = memoryProxy.getData("Device/SubDeviceList/Head/Touch/Front/Sensor/Value", 0)
     return head_touch
+
 #################################################################################
 ## Use this function, InitProxy, to initialise the proxy. As an argument give up
 ## the Ip of Nao
 #################################################################################
+def ConnectProxy(proxy_name, IP, PORT):
+    
+    theProxy=None
+    try:
+        theProxy = naoqi.ALProxy(proxy_name, IP, PORT)
+        sleep(0.01)
+    except RuntimeError as e:
+        print "Error when creating ", proxy_name ," proxy:"
+        print str(e)    
+    return theProxy
+    
 def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     """proxy: (list) 1->TTS, 2->audio, 3->motion, 4->memory, 5->face, 6->video, 7->LED's, 8->Track, 9->Speech, 10->Audioplayer, 11->VisionToolbox"""
     global audioProxy
@@ -133,180 +163,59 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     global trackfaceProxy
     global playProxy
     global videoProxy
-    global speechProxy
-    global alsonarProxy
+    global asr
+    global speechProxy # same as asr for backward compatibility
+    global sonarProxy
+    global postureProxy
+    global landmarkProxy
     
+    global ALModuleList
+    global proxyDict
     
-    #printIP, PORT
-    all_proxy = False
+    ALModuleList=["ALTextToSpeech","ALAudioDevice","ALMotion","ALMemory","ALFaceDetection","ALVideoDevice","ALLeds","ALFaceTracker","ALSpeechRecognition","ALAudioPlayer","ALVideoRecorder","ALSonar","ALRobotPosture","ALLandMarkDetection","ALSoundDetection","ALAudioSourceLocalization"]
+    proxyDict={}
+    #proxyList=[None]*(len(ALModuleList))
+    
+    # check if list is empty
     if len(proxy)==0:
-        proxy=[0]
-
-    proxy.sort()
-    if proxy[0]==0:
-        all_proxy = True
-        proxy.pop(0)
-
-    if all_proxy or proxy[0]==1:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:
-            tts = naoqi.ALProxy("ALTextToSpeech", IP, PORT)
-            sleep(0.01)
-            #print "Proxy ALTextToSpeech established"
-        except RuntimeError as e:
-            print "Error when creating TextToSpeech proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==2:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:
-            audioProxy = naoqi.ALProxy("ALAudioDevice", IP, PORT)
-            sleep(0.01)
-            #print "Proxy ALAudioDevice established"
-        except Exception, e:
-            print "Error when creating AudioDevice proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==3:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:     
-            motionProxy = naoqi.ALProxy("ALMotion", IP, PORT)
-            sleep(0.01)
-            #print "Proxy ALMotion established"
-        except Exception, e:
-            print "Error when creating motion proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==4:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:
-            memoryProxy = naoqi.ALProxy("ALMemory", IP, PORT)
-            sleep(0.01)
-            #print "Proxy ALMemory established"
-        except Exception, e:
-            print "Error when creating memory proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==5:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:
-            faceProxy = naoqi.ALProxy("ALFaceDetection", IP, PORT)
-            sleep(0.01)
-            #print "Proxy ALFaceDetection established"
-        except Exception, e:
-            print "Error when creating face detection proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==6:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:    
-            cameraProxy = naoqi.ALProxy("ALVideoDevice", IP, PORT)
-            sleep(0.01)
-            #print "Proxy ALVideoDevice established"
-        except Exception, e:
-            print "Error when creating VideoDevice proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==7:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:    
-            ledProxy = naoqi.ALProxy("ALLeds", IP, PORT)
-            sleep(0.01)
-            #print "Proxy ALLeds established"
-        except Exception, e:
-            print "Error when creating Leds proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==8:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:    
-            trackfaceProxy = naoqi.ALProxy("ALFaceTracker", IP, PORT)
-            sleep(0.01)
-            #print "Proxy ALFaceTracker established"
-        except Exception, e:
-            print "Error when creating FaceTracker proxy:"
-            print str(e)
-            
-    if all_proxy or proxy[0]==9:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:    
-            speechProxy = naoqi.ALProxy("ALSpeechRecognition", IP, PORT)
-            sleep(0.01)
-            #print "Proxy ALSpeechRecognition established"
-        except Exception, e:
-            print "Error when creating SpeechRecognition proxy:"
-            print str(e)
-
-
-
-
-            
-    if all_proxy or proxy[0]==10:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:
-            playProxy = naoqi.ALProxy("ALAudioPlayer", IP, PORT)
-            sleep(0.01)
-            #print "Proxy connection is established"
-        except Exception, e:
-            print "Error when creating AudioPlayer proxy"
-            print str(e)
-
-    if all_proxy or proxy[0]==11:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:
-            videoProxy = naoqi.ALProxy("ALVisionToolbox", IP, PORT)
-            sleep(0.01)
-            #print "Proxy connection is established"
-        except Exception, e:
-            print "Error when creating VideoToolbox proxy"
-            print str(e)
-
-
-    if all_proxy or proxy[0]==12:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:
-            alsonarProxy = naoqi.ALProxy("ALSonar",IP,PORT)
-            sleep(0.01)
-            #print "Proxy connection is established"
-        except Exception, e:
-            print "Error when creating Sonar proxy"
-            print str(e)
-
+        proxy=range(1, len(ALModuleList)+1)
+    else:
+    #if not check whether it contains a 0
+        if 0 in proxy:
+            proxy=range(1, len(ALModuleList)+1)
+    
+    for i in proxy:
+        proxyDict[ALModuleList[i-1]]=ConnectProxy(ALModuleList[i-1],IP, PORT)
+    
+    #define globals
+    tts=proxyDict["ALTextToSpeech"]
+    audioProxy=proxyDict["ALAudioDevice"]
+    motionProxy=proxyDict["ALMotion"]
+    memoryProxy=proxyDict["ALMemory"]
+    faceProxy=proxyDict["ALFaceDetection"]
+    cameraProxy=proxyDict["ALVideoDevice"]
+    ledProxy=proxyDict["ALLeds"]
+    trackfaceProxy=proxyDict["ALFaceTracker"]
+    asr=proxyDict["ALSpeechRecognition"]
+    speechProxy=asr # for backward compatibility
+    playProxy=proxyDict["ALAudioPlayer"]
+    videoProxy=proxyDict["ALVideoRecorder"]
+    sonarProxy=proxyDict["ALSonar"]
+    postureProxy=proxyDict["ALRobotPosture"]
+    landmarkProxy=proxyDict["ALLandMarkDetection"]
+    soundProxy=proxyDict["ALSoundDetection"]
+    soundsourceProxy=proxyDict["ALAudioSourceLocalization"]
 
 def InitSonar(flag=1):
     
     #period = 100
     #precision = 0.1
     if flag:
-        #alsonarProxy.subscribe("test4", period , precision )
-        alsonarProxy.subscribe("test4" )
+        #sonarProxy.subscribe("test4", period , precision )
+        sonarProxy.subscribe("test4" )
     else:
         try:
-            alsonarProxy.unsubscribe("test4" ) 
+            sonarProxy.unsubscribe("test4" ) 
             flag=0
         except:
             print "Sonar already unsubscribed"
@@ -319,167 +228,46 @@ def InitSonar(flag=1):
 #################################################################################
 def CloseProxy(proxy=[0]):
     """proxy: (list) 1->TTS, 2->audio, 3->motion, 4->memory, 5->face, 6->video, 7->LED's, 8->Track, 9->Speech, 10->Audioplayer, 11->VisionToolbox"""
-    global audioProxy
-    global motionProxy
-    global memoryProxy
-    global cameraProxy
-    global faceProxy
-    global ledProxy
-    global tts
-    global trackfaceProxy
-    global playProxy
-    global videoProxy
-    global speechProxy
+
+    global ALModuleList
+    global proxyDict
     
-    #printIP, PORT
-    all_proxy = False
+    # check if list is empty
     if len(proxy)==0:
-        proxy=[0]
+        proxy=range(1, len(ALModuleList)+1)
+    else:
+    #if not check whether it contains a 0
+        if 0 in proxy:
+            proxy=range(1, len(ALModuleList)+1)
 
-    proxy.sort()
-    if proxy[0]==0:
-        all_proxy = True
-        proxy.pop(0)
-
-    if all_proxy or proxy[0]==1:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
+    for i in proxy:
         try:
-            tts.exit()
+            proxyDict[ALModuleList[i-1]].exit()
             sleep(0.1)
             #print "Proxy ALTextToSpeech established"
         except RuntimeError as e:
-            print "Error when deleting TextToSpeech proxy:"
+            print "Error when deleting ", ALModuleList[i-1], " TextToSpeech proxy:"
             print str(e)
 
-    if all_proxy or proxy[0]==2:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:
-            audioProxy.exit()
-            sleep(0.1)
-            #print "Proxy ALAudioDevice established"
-        except Exception, e:
-            print "Error when deleting AudioDevice proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==3:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:     
-            motionProxy.exit()
-            sleep(0.1)
-            #print "Proxy ALMotion established"
-        except Exception, e:
-            print "Error when deleting motion proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==4:
-        if len(proxy):
-
-            proxy.pop(0)
-            proxy.append(0)
-        try:
-            memoryProxy.exit()
-            sleep(0.1)
-            #print "Proxy ALMemory established"
-        except Exception, e:
-            print "Error when deleting memory proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==5:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:
-            faceProxy.exit()
-            sleep(0.1)
-            #print "Proxy ALFaceDetection established"
-        except Exception, e:
-            print "Error when deleting face detection proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==6:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:    
-            cameraProxy.exit()
-            sleep(0.1)
-            #print "Proxy ALVideoDevice established"
-        except Exception, e:
-            print "Error when deleting VideoDevice proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==7:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:    
-            ledProxy.exit()
-            sleep(0.1)
-            #print "Proxy ALLeds established"
-        except Exception, e:
-            print "Error when deleting Leds proxy:"
-            print str(e)
-
-    if all_proxy or proxy[0]==8:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:    
-            trackfaceProxy.exit()
-            sleep(0.1)
-            #print "Proxy ALFaceTracker established"
-        except Exception, e:
-            print "Error when deleting FaceTracker proxy:"
-            print str(e)
-            
-    if all_proxy or proxy[0]==9:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:    
-            speechProxy.exit()
-            sleep(0.1)
-            #print "Proxy ALSpeechRecognition established"
-        except Exception, e:
-            print "Error when deleting SpeechRecognition proxy:"
-            print str(e)
-            
-    if all_proxy or proxy[0]==10:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:
-            playProxy.exit()
-            sleep(0.1)
-            #print "Proxy connection is established"
-        except Exception, e:
-            print "Error when deleting AudioPlayer proxy"
-            print str(e)
-
-    if all_proxy or proxy[0]==11:
-        if len(proxy):
-            proxy.pop(0)
-            proxy.append(0)
-        try:
-            videoProxy.exit()
-            sleep(0.1)
-            #print "Proxy connection is established"
-        except Exception, e:
-            print "Error when deleting Video recorder proxy"
-            print str(e)
-   
-
-
-
+    #redefine globals (one or more are set to None)
+    tts=proxyDict["ALTextToSpeech"]
+    audioProxy=proxyDict["ALAudioDevice"]
+    motionProxy=proxyDict["ALMotion"]
+    memoryProxy=proxyDict["ALMemory"]
+    faceProxy=proxyDict["ALFaceDetection"]
+    cameraProxy=proxyDict["ALVideoDevice"]
+    ledProxy=proxyDict["ALLeds"]
+    trackfaceProxy=proxyDict["ALFaceTracker"]
+    asr=proxyDict["ALSpeechRecognition"]
+    speechProxy=asr # for backward compatibility
+    playProxy=proxyDict["ALAudioPlayer"]
+    videoProxy=proxyDict["ALVideoRecorder"]
+    sonarProxy=proxyDict["ALSonar"]
+    postureProxy=proxyDict["ALRobotPosture"]
+    landmarkProxy=proxyDict["ALLandMarkDetection"] 
      
 ################################################################################
-## nao.NaoFacePosition() subscribes to faceProxy and returns location of face.
+## nao.ALFacePosition() subscribes to faceProxy and returns location of face.
 ## It uses the embedded functions of Aldebaran face detection. If you want to
 ## change the period, you will have to first unsubscribe using switch = False.
 ## It returns [face_location,detected]. detected = whether a face has been seen.
@@ -496,6 +284,8 @@ def ALFacePosition(switch = True, period = 100):
         faceProxy.unsubscribe("Test_Face")
         alface_subscribed == False
     #print " location face: " , location_face
+    if location_face==None:
+        location_face=[]
     if len(location_face) >= 2: # Changed with respect to old naoqi versions
         return [-location_face[1][0][0][1],location_face[1][0][0][2]], True
         
@@ -653,7 +443,7 @@ def InitVideo(resolution):
     global cameraProxy
     global cv_im
 
-    resolutionar = [160,120],[320,240],[640,480]
+    resolutionar = [160,120],[320,240],[640,480],[1280,960]
     framerate=30
     key=0
     random.random()*10
@@ -679,10 +469,6 @@ def InitVideo(resolution):
 def GetImage():
     global img
 
-
-
-
-    
     gotimage = False
     count = 0
     
@@ -707,273 +493,8 @@ def GetImage():
 #    cv.SetData(cv_im, pi.tostring())
 #    cv.Flip(cv_im,cv_im,0)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #    key = cv.WaitKey(10)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #    return cv_im
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ################################################################################
 ## Initializes the track function it stiffens the joints, gathers the IDPose
@@ -1067,280 +588,6 @@ def MovingHead():
 ###############################################################################
 ## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ################################################################################
 # Track Face
 ################################################################################
@@ -1354,143 +601,57 @@ def ALTrack(switch=1):
         #EndTrack()
     else:
         return trackfaceProxy.isActive()
-            
 
+##############################################################################
+## Go to one of the predefined postures
+#############################################################################
+def GoToPosture(thePosture, speed=0.5):
+
+#    "StandInit"
+#    "SitRelax"
+#    "StandZero"
+#    "LyingBelly"
+#    "Sit"
+#    "LyingBack"
+#    "Stand"
+#    "Crouch"
+
+    postureProxy.goToPosture(thePosture, speed)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
 ##############################################################################
 ## Put's Noa into its Initpose. Only use when standing or in crouch position.
 #############################################################################
-def InitPose(time_pos=0.5):
+def InitPose(time_pos=0.5, speed=0.8):
     """Nao will move to initpose."""
-    dtheta = 0
-    dx = 0
-    dy = 0
-    freq = 1
-    motionProxy.setWalkTargetVelocity(dx, dy, dtheta, freq)
+
+    motionProxy.setWalkTargetVelocity(0, 0, 0, 1)
     sleep(0.1)
     # set stiffness
     motionProxy.stiffnessInterpolation('Body',1.0, time_pos)
-    sleep(0.5)
+    GoToPosture("Stand", speed)
+    #sleep(0.5)
     #IP.initPose(motionProxy)
-    numJoints = len(motionProxy.getJointNames('Body'))
+    # numJoints = len(motionProxy.getJointNames('Body'))
 
-    allAngles = [0.0,0.0,                   # head
-        1.39, 0.34, -1.39, -1.04, 0.0, 0.0,             # left arm
-        0.0, 0.0, -0.43, 0.69, -0.34, 0.0,                  # left leg
-        0.0, 0.0, -0.43, 0.69, -0.34, 0.0,                  # right leg
-        1.39, -0.34, 1.39, 1.04, 0.0, 0.0]              # right arm
-    #printnumJoints
-    if (numJoints == 26):
-        angles = allAngles
-    elif (numJoints == 22):  # no hands (e.g. simulator)
-        angles = allAngles[0:6] + allAngles[8:24]
-    else:
-        print "error in Init Pose"
+    # allAngles = [0.0,0.0,                   # head
+        # 1.39, 0.34, -1.39, -1.04, 0.0, 0.0,             # left arm
+        # 0.0, 0.0, -0.43, 0.69, -0.34, 0.0,                  # left leg
+        # 0.0, 0.0, -0.43, 0.69, -0.34, 0.0,                  # right leg
+        # 1.39, -0.34, 1.39, 1.04, 0.0, 0.0]              # right arm
+    # #printnumJoints
+    # if (numJoints == 26):
+        # angles = allAngles
+    # elif (numJoints == 22):  # no hands (e.g. simulator)
+        # angles = allAngles[0:6] + allAngles[8:24]
+    # else:
+        # print "error in Init Pose"
         
-    try:
-        motionProxy.post.angleInterpolation('Body', angles, 1.5, True);
+    # try:
+        # motionProxy.post.angleInterpolation('Body', angles, 1.5, True);
     
-    except RuntimeError,e:
-        print "An error has been caught"
-        print e
+    # except RuntimeError,e:
+        # print "An error has been caught"
+        # print e
         
 def Stiffen(stiffness = True, int_time=1):
     """Make Nao stiffen its joints (Can be True or False)"""
@@ -1516,74 +677,80 @@ def StiffenUpperBody(stiffness = True, int_time=0.1):
 ################################################################################
 ## Nao crouches and loosens it's joints.
 ###############################################################################
-def Crouch():
-    """Make Nao to crouch pose."""
-    
-	# get the robot config
-    robotConfig = motionProxy.getRobotConfig()
-    
-	#for i in range(len(robotConfig[0])):
-    #    print robotConfig[0][i], ": ", robotConfig[1][i]
-
-    # "Model Type"   : "naoH25", "naoH21", "naoT14" or "naoT2".
-    # "Head Version" : "VERSION_32" or "VERSION_33" or "VERSION_40".
-    # "Body Version" : "VERSION_32" or "VERSION_33" or "VERSION_40".
-    # "Laser"        : True or False.
-    # "Legs"         : True or False.
-    # "Arms"         : True or False.
-    # "Extended Arms": True or False.
-    # "Hands"        : True or False.
-    # "Arm Version"  : "VERSION_32" or "VERSION_33" or "VERSION_40".
-    # Number of Legs : 0 or 2
-    # Number of Arms : 0 or 2
-    # Number of Hands: 0 or 2
-    if robotConfig[1][0]=="naoH25" or robotConfig[1][0]=="naoH21":
-        pass
-    else:
-        print "Wrong robot type: cannot crouch without arms and legs"
-        return
-    if robotConfig[1][8]=="VERSION_32":
-    	allAngles = [0.0,0.0,                   # head
-        	    1.545, 0.33, -1.57, -0.486, 0.0, 0.0,       # left arm
-            	-0.3, 0.057, -0.744, 2.192, -1.122, -0.035,     # left leg
-    	        -0.3, 0.057, -0.744, 2.192, -1.122, -0.035,         # right leg
-        	    1.545, -0.33, 1.57, 0.486, 0.0, 0.0]        # right arm
-    elif robotConfig[1][8]=="VERSION_33":
-    #Modified for robot version V33
-    	allAngles = [0.0,0.0,                   # head
-        	    1.545, 0.2, -1.56, -0.5, 0.0, 0.0,       # left arm
-            	-0.319, 0.037, -0.695, 2.11, -1.189, -0.026,     # left leg
-        	    -0.319, 0.037, -0.695, 2.11, -1.189, -0.026,         # right leg
-    	        1.545, -0.2, 1.56, 0.5, 0.0, 0.0]        # right arm
-    else:
-    #Modified for robot version V4.0
-    	allAngles = [0.0,0.0,                   # head
-        	    1.53, 0.15, -1.56, -0.5, 0.0, 0.0,       # left arm
-            	-0.30, 0.05, -0.75, 2.11, -1.19, -0.04,     # left leg
-	            -0.30, 0.05, -0.75, 2.11, -1.19, -0.04,         # right leg
-    	        1.53, -0.15, 1.56, 0.5, 0.0, 0.0]        # right arm
-
-    numJoints = len(motionProxy.getJointNames('Body'))
-    if (numJoints == 26):
-        angles = allAngles
-    elif (numJoints == 22):  # no hands (e.g. simulator)
-        angles = allAngles[0:6] + allAngles[8:24]
-    else:
-        print "error in numJoints"
-            
-    try:
-        motionProxy.angleInterpolation('Body', angles, 1.5, True);
-
-    except RuntimeError,e:
-        print "An error has been caught"
-        print e
-
+def Crouch(speed=0.8):
+    motionProxy.setWalkTargetVelocity(0, 0, 0, 1)
+    sleep(0.1)
+    GoToPosture("Crouch", speed)
     motionProxy.stiffnessInterpolation('Body',0, 0.5)
+
+##def Crouch():
+##    """Make Nao to crouch pose."""
+##    
+##  # get the robot config
+##    robotConfig = motionProxy.getRobotConfig()
+##    
+##  #for i in range(len(robotConfig[0])):
+##    #    print robotConfig[0][i], ": ", robotConfig[1][i]
+##
+##    # "Model Type"   : "naoH25", "naoH21", "naoT14" or "naoT2".
+##    # "Head Version" : "VERSION_32" or "VERSION_33" or "VERSION_40".
+##    # "Body Version" : "VERSION_32" or "VERSION_33" or "VERSION_40".
+##    # "Laser"        : True or False.
+##    # "Legs"         : True or False.
+##    # "Arms"         : True or False.
+##    # "Extended Arms": True or False.
+##    # "Hands"        : True or False.
+##    # "Arm Version"  : "VERSION_32" or "VERSION_33" or "VERSION_40".
+##    # Number of Legs : 0 or 2
+##    # Number of Arms : 0 or 2
+##    # Number of Hands: 0 or 2
+##    if robotConfig[1][0]=="naoH25" or robotConfig[1][0]=="naoH21":
+##        pass
+##    else:
+##        print "Wrong robot type: cannot crouch without arms and legs"
+##        return
+##    if robotConfig[1][8]=="VERSION_32":
+##      allAngles = [0.0,0.0,                   # head
+##              1.545, 0.33, -1.57, -0.486, 0.0, 0.0,       # left arm
+##              -0.3, 0.057, -0.744, 2.192, -1.122, -0.035,     # left leg
+##              -0.3, 0.057, -0.744, 2.192, -1.122, -0.035,         # right leg
+##              1.545, -0.33, 1.57, 0.486, 0.0, 0.0]        # right arm
+##    elif robotConfig[1][8]=="VERSION_33":
+##    #Modified for robot version V33
+##      allAngles = [0.0,0.0,                   # head
+##              1.545, 0.2, -1.56, -0.5, 0.0, 0.0,       # left arm
+##              -0.319, 0.037, -0.695, 2.11, -1.189, -0.026,     # left leg
+##              -0.319, 0.037, -0.695, 2.11, -1.189, -0.026,         # right leg
+##              1.545, -0.2, 1.56, 0.5, 0.0, 0.0]        # right arm
+##    else:
+##    #Modified for robot version V4.0
+##      allAngles = [0.0,0.0,                   # head
+##              1.53, 0.15, -1.56, -0.5, 0.0, 0.0,       # left arm
+##              -0.30, 0.05, -0.75, 2.11, -1.19, -0.04,     # left leg
+##              -0.30, 0.05, -0.75, 2.11, -1.19, -0.04,         # right leg
+##              1.53, -0.15, 1.56, 0.5, 0.0, 0.0]        # right arm
+##
+##    numJoints = len(motionProxy.getJointNames('Body'))
+##    if (numJoints == 26):
+##        angles = allAngles
+##    elif (numJoints == 22):  # no hands (e.g. simulator)
+##        angles = allAngles[0:6] + allAngles[8:24]
+##    else:
+##        print "error in numJoints"
+##            
+##    try:
+##        motionProxy.angleInterpolation('Body', angles, 1.5, True);
+##
+##    except RuntimeError,e:
+##        print "An error has been caught"
+##        print e
+##
+##    motionProxy.stiffnessInterpolation('Body',0, 0.5)
     
 ##################################################################################
 ## Allows Nao to move in a certain direction with a certain speed.
 ################################################################################
-def Move(dx=0, dtheta=0, dy=0 ,freq=1):
+def Move(dx=0, dy=0, dtheta=0, freq=1):
     """"
     dx = forward speed, dtheta = rotational speed,
     dy = sidewards speed, freq = step frequency.
@@ -2005,24 +1172,24 @@ def GetAvailableModules():
             dir_file.append(module_files)
     return dir_file
     
-def InitSpeech(wordList=["yes","no","hello NAO","goodbye NAO"]):
+def InitSpeech(wordList=["yes","no","hello NAO","goodbye NAO"],the_language="English",wordSpotting=False):
     global speechProxy
     global memoryProxy
     
-#Creating a proxy on the module
-#Before calling the ASR commands, you need to create a proxy on the ASR module:
-
+    #Creating a proxy on the module
+    #Before calling the ASR commands, you need to create a proxy on the ASR module:
 #    asr = ALProxy("ALSpeechRecognition",myIP,9559) #IP = address of your robot
-    asr=speechProxy
+    #asr=speechProxy
     
-#Before starting the ASR engine, you must set the language of the speech recognition system. The list of the installed languages can be obtained through the getAvailableLanguages method.
+    #Before starting the ASR engine, you must set the language of the speech recognition system. The list of the installed languages can be obtained through the getAvailableLanguages method.
+    asr.setLanguage(the_language)
 
-    asr.setLanguage("English")
+    #Note that this does not affect the language of speech synthesis. 
+    #We will assume that it must be the same:
+    tts.setLanguage(the_language)
 
     # To set the words that should be recognized, use the setWordListAsVocabulary method.
-
-#    print(wordList)
-    asr.setWordListAsVocabulary(wordList)
+    asr.setVocabulary(wordList,wordSpotting)
 
     #Note:
     #The following feature (the usage of the "loadVocabulary()" function) is not available for Chinese and Japanese.
@@ -2046,10 +1213,11 @@ def InitSpeech(wordList=["yes","no","hello NAO","goodbye NAO"]):
     
 def DetectSpeech():
     global memoryProxy
+    
     try:
         #getData
         result=memoryProxy.getData("WordRecognized")
-        if len(result)>1:
+        if len(result)>0:
             memoryProxy.insertData("WordRecognized",[])
 
     except RuntimeError,e:
@@ -2057,6 +1225,137 @@ def DetectSpeech():
       print "error getting data", e
 
     return result
+
+def InitLandMark(period = 500):
+    # Subscribe to the ALLandMarkDetection extractor
+    landmarkProxy.subscribe("Test_Mark", period, 0.0 )
+
+def DetectLandMark():
+    # Get data from landmark detection (assuming face detection has been activated).
+    global memoryProxy
+
+    data = memoryProxy.getData("LandmarkDetected")
+
+    if data==None:
+        data=[] # otherwise the next statement fails ...        
+    if len(data)==0:
+        detected=False
+        timestamp=time()
+        markerInfo=[]
+    else:
+        detected=True
+        #timestamp=data[0][0]+1E-6*data[0][1] #this works but only if a landmark is detected
+        timestamp=time()
+        markerInfo=[]
+        for p in data[1]:
+            markerInfo.append([p[1][0], #markerID
+                               p[0][1], #alpha - x location in camera angle
+                               p[0][2], #beta  - y location
+                               p[0][3], #sizeX
+                               p[0][4], #sizeY
+                               p[0][5]  #orientation about vertical w.r. Nao's head
+                               ])
+    return detected, timestamp, markerInfo
+
+def InitSoundDetection(switch=1):
+    # Subscribe to the ALSoundDetection
+    global soundProxy
+
+    soundProxy.setParameter("Sensitivity", 0.3)    
+    if switch==1:
+        try:
+            soundProxy.subscribe(__nao_module_name__ )
+        except:
+            print "Could not subscribe to ALSoundDetection"
+    else:
+        try:
+            soundProxy.unsubscribe(__nao_module_name__ )
+        except:
+            print "Could not unsubscribe from ALSoundDetection"
+
+
+def DetectSound():
+    # Get data from landmark detection (assuming face detection has been activated).
+    data = memoryProxy.getData("SoundDetected")
+
+    ##The SoundDetected key is organized as follows:
+    ##
+    ##[[index_1, type_1, confidence_1, time_1],
+    ## ...,
+    ##[index_n, type_n, confidence_n, time_n]]
+    ##
+    ##n is the number of sounds detected in the last audio buffer,
+    ##index is the index (in samples) of either the sound start (if type is equal to 1) or the sound end (if type is equal to 0),
+    ##time is the detection time in micro seconds
+    ##confidence gives an estimate of the probability [0;1] that the sound detected by the module corresponds to a real sound.
+    if data==None:
+        data=[] # otherwise the next statement fails ... 
+    if len(data)==0:
+        detected=False
+        timestamp=time()
+        soundInfo=[]
+    else:
+        detected=True
+        timestamp=time()
+        soundInfo=[]
+        for snd in data:
+            soundInfo.append([ snd[0], #index of sound start/end
+                               snd[1], #type: 1=start, 0=end
+                               snd[2]  #confidence: probability that there was a sound
+                               ])
+        memoryProxy.insertData("SoundDetected",[]) #clear memory
+    return detected, timestamp, soundInfo
+
+
+def InitSoundLocalization(switch=1):
+    # Subscribe to the ALSoundDetection
+    global soundLocalizationProxy
+    
+    if switch==1:
+        try:
+            soundLocalizationProxy.subscribe(__nao_module_name__ )
+        except:
+            print "Could not subscribe to ALSoundDetection"
+    else:
+        try:
+            soundLocalizationProxy.unsubscribe(__nao_module_name__ )
+        except:
+            print "Could not subscribe to ALSoundDetection"
+
+
+def DetectSoundLocation():
+    # Get data from landmark detection (assuming face detection has been activated).
+    global memoryProxy
+    
+    data = memoryProxy.getData("ALSoundLocalization/SoundLocated")
+
+    ##The SoundDetected key is organized as follows:
+    ##
+    ##[ [time(sec), time(usec)],
+    ##
+    ##  [azimuth(rad), elevation(rad), confidence],
+    ##
+    ##  [Head Position[6D]]
+    ##]
+
+    if data==None:
+        data=[] # otherwise the next statement fails ... 
+    if len(data)==0:
+        detected=False
+        timestamp=time()
+        soundInfo=[]
+    else:
+        detected=True
+        #timestamp=data[0][0]+1E-6*data[0][1] #this works but only if a sound is located
+        timestamp=time()
+        soundInfo=[]
+        for snd in data:
+            soundInfo.append([ snd[1][0], #azimuth angle
+                               snd[1][1], #elvation angle
+                               snd[1][2], #confidence: probability that there was a sound
+                               snd[2]])   #Headposition 6D
+        memoryProxy.insertData("ALSoundLocalization/SoundLocated",[]) #clear memory
+    return detected, timestamp, soundInfo
 
 if __name__ == "__main__":
     print GetAvailableModules(), "\n"
