@@ -67,6 +67,8 @@ import naoqi
 
 from collections import deque
 
+
+__naoqi_version__='1.14'
 __nao_module_name__ ="Nao Library"
 
 gftt_list = list()
@@ -282,6 +284,8 @@ def ALFacePosition(switch = True, period = 100):
         faceProxy.unsubscribe("Test_Face")
         alface_subscribed == False
     #print " location face: " , location_face
+    if location_face==None:
+        location_face=[]
     if len(location_face) >= 2: # Changed with respect to old naoqi versions
         return [-location_face[1][0][0][1],location_face[1][0][0][2]], True
         
@@ -1168,7 +1172,7 @@ def GetAvailableModules():
             dir_file.append(module_files)
     return dir_file
     
-def InitSpeech(wordList=["yes","no","hello NAO","goodbye NAO"],the_language="English"):
+def InitSpeech(wordList=["yes","no","hello NAO","goodbye NAO"],the_language="English",wordSpotting=False):
     global speechProxy
     global memoryProxy
     
@@ -1185,7 +1189,7 @@ def InitSpeech(wordList=["yes","no","hello NAO","goodbye NAO"],the_language="Eng
     tts.setLanguage(the_language)
 
     # To set the words that should be recognized, use the setWordListAsVocabulary method.
-    asr.setWordListAsVocabulary(wordList)
+    asr.setVocabulary(wordList,wordSpotting)
 
     #Note:
     #The following feature (the usage of the "loadVocabulary()" function) is not available for Chinese and Japanese.
@@ -1209,10 +1213,11 @@ def InitSpeech(wordList=["yes","no","hello NAO","goodbye NAO"],the_language="Eng
     
 def DetectSpeech():
     global memoryProxy
+    
     try:
         #getData
         result=memoryProxy.getData("WordRecognized")
-        if len(result)>1:
+        if len(result)>0:
             memoryProxy.insertData("WordRecognized",[])
 
     except RuntimeError,e:
@@ -1227,8 +1232,12 @@ def InitLandMark(period = 500):
 
 def DetectLandMark():
     # Get data from landmark detection (assuming face detection has been activated).
+    global memoryProxy
+
     data = memoryProxy.getData("LandmarkDetected")
 
+    if data==None:
+        data=[] # otherwise the next statement fails ...        
     if len(data)==0:
         detected=False
         timestamp=time()
@@ -1250,6 +1259,9 @@ def DetectLandMark():
 
 def InitSoundDetection(switch=1):
     # Subscribe to the ALSoundDetection
+    global soundProxy
+
+    soundProxy.setParameter("Sensitivity", 0.3)    
     if switch==1:
         try:
             soundProxy.subscribe(__nao_module_name__ )
@@ -1276,25 +1288,29 @@ def DetectSound():
     ##index is the index (in samples) of either the sound start (if type is equal to 1) or the sound end (if type is equal to 0),
     ##time is the detection time in micro seconds
     ##confidence gives an estimate of the probability [0;1] that the sound detected by the module corresponds to a real sound.
-
+    if data==None:
+        data=[] # otherwise the next statement fails ... 
     if len(data)==0:
         detected=False
-        timestamp=time.time()
+        timestamp=time()
         soundInfo=[]
     else:
         detected=True
-        timestamp=time.time()
+        timestamp=time()
         soundInfo=[]
         for snd in data:
             soundInfo.append([ snd[0], #index of sound start/end
                                snd[1], #type: 1=start, 0=end
                                snd[2]  #confidence: probability that there was a sound
                                ])
+        memoryProxy.insertData("SoundDetected",[]) #clear memory
     return detected, timestamp, soundInfo
 
 
 def InitSoundLocalization(switch=1):
     # Subscribe to the ALSoundDetection
+    global soundLocalizationProxy
+    
     if switch==1:
         try:
             soundLocalizationProxy.subscribe(__nao_module_name__ )
@@ -1309,7 +1325,9 @@ def InitSoundLocalization(switch=1):
 
 def DetectSoundLocation():
     # Get data from landmark detection (assuming face detection has been activated).
-    data = memoryProxy.getData("SoundLocated")
+    global memoryProxy
+    
+    data = memoryProxy.getData("ALSoundLocalization/SoundLocated")
 
     ##The SoundDetected key is organized as follows:
     ##
@@ -1320,20 +1338,23 @@ def DetectSoundLocation():
     ##  [Head Position[6D]]
     ##]
 
+    if data==None:
+        data=[] # otherwise the next statement fails ... 
     if len(data)==0:
         detected=False
-        timestamp=time.time()
+        timestamp=time()
         soundInfo=[]
     else:
         detected=True
         #timestamp=data[0][0]+1E-6*data[0][1] #this works but only if a sound is located
-        timestamp=time.time()
+        timestamp=time()
         soundInfo=[]
         for snd in data:
             soundInfo.append([ snd[1][0], #azimuth angle
                                snd[1][1], #elvation angle
                                snd[1][2], #confidence: probability that there was a sound
                                snd[2]])   #Headposition 6D
+        memoryProxy.insertData("ALSoundLocalization/SoundLocated",[]) #clear memory
     return detected, timestamp, soundInfo
 
 if __name__ == "__main__":
