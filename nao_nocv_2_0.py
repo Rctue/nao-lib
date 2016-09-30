@@ -62,7 +62,7 @@ import math
 import sys
 import os
 import csv
-
+import numpy as np
 import naoqi
 
 from collections import deque
@@ -297,10 +297,10 @@ def ALFacePosition(switch = True, period = 100):
         return [], False
         
 def DetectFace(switch = True, period = 100):
-	facePosition, detected = ALFacePosition(switch, period)
-	timestamp=time()
-	
-	return detected, timestamp, facePosition # for consistency with DetectSound DetectLandmark etc
+    facePosition, detected = ALFacePosition(switch, period)
+    timestamp=time()
+    
+    return detected, timestamp, facePosition # for consistency with DetectSound DetectLandmark etc
 
 ###############################################################################
 ## EyesLED() can change the color of the leds. The color parameter sets
@@ -454,14 +454,15 @@ def InitVideo(resolution):
     global cv_im
 
     resolutionar = [160,120],[320,240],[640,480],[1280,960]
-    framerate=30
-    key=0
-    random.random()*10
+    framerate=10
+    kALColorSpace=0 #BGR: 11, RGB: 13
+    
     try:
-        nameId = cameraProxy.subscribe("python_GVM2"+str(random.random()*10), resolution, 0, 10) #0, 0, 10
+        nameId = cameraProxy.subscribe("python_GVM2"+str(random.random()*10), resolution, kALColorSpace, framerate) #0, 0, 10
     except NameError:
         print 'ALVideoDevice proxy undefined. Are you running a simulated naoqi?'
         return None
+    cv_im = np.zeros((resolutionar[resolution][0], resolutionar[resolution][1],3),dtype=uint8)
 #    try:
 #        cv_im = cv.CreateImageHeader((resolutionar[resolution][0],
 #                                      resolutionar[resolution][1]),
@@ -667,8 +668,8 @@ def version(string):
 def InitPose(time_pos=0.5, speed=0.8):
     """Nao will move to initpose."""
 
-	Move(0.0,0.0,0.0) # stop moving
-	sleep(0.1)
+    Move(0.0,0.0,0.0) # stop moving
+    sleep(0.1)
     # set stiffness
     motionProxy.stiffnessInterpolation('Body',1.0, time_pos)
     GoToPosture("Stand", speed)
@@ -721,7 +722,7 @@ def StiffenUpperBody(stiffness = True, int_time=0.1):
 ## Nao crouches and loosens it's joints.
 ###############################################################################
 def Crouch(speed=0.8):
-	Move(0.0,0.0,0.0) # stop moving
+    Move(0.0,0.0,0.0) # stop moving
     sleep(0.1)
     GoToPosture("Crouch", speed)
     motionProxy.stiffnessInterpolation('Body',0, 0.5)
@@ -1286,7 +1287,7 @@ def InitLandMark(switch=True, period = 500):
     landmarkProxy.subscribe(__nao_module_name__ , period, 0.0 )
     if switch:
         try:
-			landmarkProxy.subscribe(__nao_module_name__ , period, 0.0 )
+            landmarkProxy.subscribe(__nao_module_name__ , period, 0.0 )
         except:
             print "Could not subscribe to ALLandMarkDetection"
     else:
