@@ -41,6 +41,7 @@
 ## 1.39: Removed "from naoqi import xxx" statements.
 ## 1.40: Added ALRobotPosture proxy, GoToPosture and proper InitPose() and Crouch(); InitProxy rewritten 
 ## 1.41: Added Landmark detection, Sound localization  and Sound detection
+## 1.42: Added GetGyro, GetAccel, GetTorsoAngle, and GetFootSensors
 
 ### nao_nocv.py
 ## 1.0 removed dependencies on OpenCV and Image libraries. InitVideo and GetImage modified, but broken.
@@ -51,8 +52,10 @@
 ## 1.2 updated to match nao.py version 1.40
         ## 1.40: Added ALRobotPosture proxy, GoToPosture and proper InitPose() and Crouch(); InitProxy rewritten;
 ## 1.3 updated to match nao.py version 1.41
-        ## 1.41: Added Landmark detection, Sound localization  and Sound detection 
-
+        # 1.41: Added Landmark detection, Sound localization  and Sound detection 
+## 2.0 updated to naoqi version 2.x
+        # 1.42: Added GetGyro, GetAccel, GetTorsoAngle, and GetFootSensors
+        
 #import cv
 from time import time
 from time import sleep
@@ -177,6 +180,7 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     
     ALModuleList=["ALTextToSpeech","ALAudioDevice","ALMotion","ALMemory","ALFaceDetection","ALVideoDevice","ALLeds","ALFaceTracker","ALSpeechRecognition","ALAudioPlayer","ALVideoRecorder","ALSonar","ALRobotPosture","ALLandMarkDetection","ALTracker","ALSoundDetection","ALAudioSourceLocalization"]
     proxyDict={}
+    proxyDict=proxyDict.fromkeys(ALModuleList,None)
     #proxyList=[None]*(len(ALModuleList))
     
     # check if list is empty
@@ -808,12 +812,50 @@ def Move(dx=0, dy=0, dtheta=0, freq=1):
         motionProxy.moveToward(dx,dy,dtheta)
     
 def ReadSonar():    
-    
+    """Read the left and right Sonar Values"""
     SonarLeft = "Device/SubDeviceList/US/Left/Sensor/Value"
     SonarRight = "Device/SubDeviceList/US/Right/Sensor/Value"
     SL=memoryProxy.getData(SonarLeft,0) # read sonar left value from memory
     SR=memoryProxy.getData(SonarRight ,0) # read sonar right value from memory
     return SL, SR
+
+def GetGyro():
+    """Get the Gyrometers Values"""
+    GyrX = memoryProxy.getData("Device/SubDeviceList/InertialSensor/GyrX/Sensor/Value")
+    GyrY = memoryProxy.getData("Device/SubDeviceList/InertialSensor/GyrY/Sensor/Value")
+    return GyrX, GyrY
+
+def GetAccel():
+    """Get the Accelerometers Values"""
+    AccX = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AccX/Sensor/Value")
+    AccY = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AccY/Sensor/Value")
+    AccZ = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AccZ/Sensor/Value")
+    return AccX, AccY, AccZ
+
+def GetTorsoAngle():
+    """Get the Computed Torso Angle in radians"""
+    TorsoAngleX = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value")
+    TorsoAngleY = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AngleY/Sensor/Value")
+    return TorsoAngleX, TorsoAngleY
+
+def GetFootSensors():
+    """Get the foot sensor values"""
+    # Get The Left Foot Force Sensor Values
+    LFsrFL = memoryProxy.getData("Device/SubDeviceList/LFoot/FSR/FrontLeft/Sensor/Value")
+    LFsrFR = memoryProxy.getData("Device/SubDeviceList/LFoot/FSR/FrontRight/Sensor/Value")
+    LFsrBL = memoryProxy.getData("Device/SubDeviceList/LFoot/FSR/RearLeft/Sensor/Value")
+    LFsrBR = memoryProxy.getData("Device/SubDeviceList/LFoot/FSR/RearRight/Sensor/Value")
+    LF=[LFsrFL, LFsrFR, LFsrBL, LFsrBR]
+
+    # Get The Right Foot Force Sensor Values
+    RFsrFL = memoryProxy.getData("Device/SubDeviceList/RFoot/FSR/FrontLeft/Sensor/Value")
+    RFsrFR = memoryProxy.getData("Device/SubDeviceList/RFoot/FSR/FrontRight/Sensor/Value")
+    RFsrBL = memoryProxy.getData("Device/SubDeviceList/RFoot/FSR/RearLeft/Sensor/Value")
+    RFsrBR = memoryProxy.getData("Device/SubDeviceList/RFoot/FSR/RearRight/Sensor/Value")
+    RF=[RFsrFL, RFsrFR, RFsrBL, RFsrBR]
+
+    return LF, RF
+
 ##################################################################################
 ## Allows Nao to move dx meters forward, dy meters sidways with final orientation of dtheta
 ################################################################################
