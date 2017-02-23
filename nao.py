@@ -57,7 +57,7 @@ import naoqi
 from collections import deque
 
 
-__naoqi_version__='1.14'
+__naoqi_version__='2.1'
 __nao_module_name__ ="Nao Library"
 
 gftt_list = list() # initialize good features to track for opencv

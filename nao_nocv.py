@@ -41,6 +41,7 @@
 ## 1.39: Removed "from naoqi import xxx" statements.
 ## 1.40: Added ALRobotPosture proxy, GoToPosture and proper InitPose() and Crouch(); InitProxy rewritten 
 ## 1.41: Added Landmark detection, Sound localization  and Sound detection
+## 1.42: Added GetGyro, GetAccel, GetTorsoAngle, and GetFootSensors
 
 ### nao_nocv.py
 ## 1.0 removed dependencies on OpenCV and Image libraries. InitVideo and GetImage modified, but broken.
@@ -51,8 +52,10 @@
 ## 1.2 updated to match nao.py version 1.40
         ## 1.40: Added ALRobotPosture proxy, GoToPosture and proper InitPose() and Crouch(); InitProxy rewritten;
 ## 1.3 updated to match nao.py version 1.41
-        ## 1.41: Added Landmark detection, Sound localization  and Sound detection 
-
+        # 1.41: Added Landmark detection, Sound localization  and Sound detection 
+## 2.0 updated to naoqi version 2.x
+        # 1.42: Added GetGyro, GetAccel, GetTorsoAngle, and GetFootSensors
+        
 #import cv
 from time import time
 from time import sleep
@@ -62,13 +65,13 @@ import math
 import sys
 import os
 import csv
-
+import numpy as np
 import naoqi
 
 from collections import deque
 
 
-__naoqi_version__='1.14'
+__naoqi_version__='2.1'
 __nao_module_name__ ="Nao Library"
 
 gftt_list = list()
@@ -168,12 +171,16 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     global sonarProxy
     global postureProxy
     global landmarkProxy
+    global trackerProxy
+    global soundProxy
+    global soundLocalizationProxy
     
     global ALModuleList
     global proxyDict
     
-    ALModuleList=["ALTextToSpeech","ALAudioDevice","ALMotion","ALMemory","ALFaceDetection","ALVideoDevice","ALLeds","ALFaceTracker","ALSpeechRecognition","ALAudioPlayer","ALVideoRecorder","ALSonar","ALRobotPosture","ALLandMarkDetection","ALSoundDetection","ALAudioSourceLocalization"]
+    ALModuleList=["ALTextToSpeech","ALAudioDevice","ALMotion","ALMemory","ALFaceDetection","ALVideoDevice","ALLeds","ALFaceTracker","ALSpeechRecognition","ALAudioPlayer","ALVideoRecorder","ALSonar","ALRobotPosture","ALLandMarkDetection","ALTracker","ALSoundDetection","ALAudioSourceLocalization"]
     proxyDict={}
+    proxyDict=proxyDict.fromkeys(ALModuleList,None)
     #proxyList=[None]*(len(ALModuleList))
     
     # check if list is empty
@@ -204,9 +211,10 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     postureProxy=proxyDict["ALRobotPosture"]
     landmarkProxy=proxyDict["ALLandMarkDetection"]
     soundProxy=proxyDict["ALSoundDetection"]
-    soundsourceProxy=proxyDict["ALAudioSourceLocalization"]
+    soundLocalizationProxy=proxyDict["ALAudioSourceLocalization"]
+    trackerProxy=proxyDict["ALTracker"]
 
-def InitSonar(flag=1):
+def InitSonar(flag=True):
     
     #period = 100
     #precision = 0.1
@@ -216,10 +224,10 @@ def InitSonar(flag=1):
     else:
         try:
             sonarProxy.unsubscribe("test4" ) 
-            flag=0
+            flag=False
         except:
             print "Sonar already unsubscribed"
-            flag=0
+            flag=False
     return flag
    
 #################################################################################
@@ -291,6 +299,12 @@ def ALFacePosition(switch = True, period = 100):
         
     else:
         return [], False
+        
+def DetectFace(switch = True, period = 100):
+    facePosition, detected = ALFacePosition(switch, period)
+    timestamp=time()
+    
+    return detected, timestamp, facePosition # for consistency with DetectSound DetectLandmark etc
 
 ###############################################################################
 ## EyesLED() can change the color of the leds. The color parameter sets
@@ -444,14 +458,15 @@ def InitVideo(resolution):
     global cv_im
 
     resolutionar = [160,120],[320,240],[640,480],[1280,960]
-    framerate=30
-    key=0
-    random.random()*10
+    framerate=10
+    kALColorSpace=0 #BGR: 11, RGB: 13
+    
     try:
-        nameId = cameraProxy.subscribe("python_GVM2"+str(random.random()*10), resolution, 0, 10) #0, 0, 10
+        nameId = cameraProxy.subscribe("python_GVM2"+str(random.random()*10), resolution, kALColorSpace, framerate) #0, 0, 10
     except NameError:
         print 'ALVideoDevice proxy undefined. Are you running a simulated naoqi?'
         return None
+    cv_im = np.zeros((resolutionar[resolution][0], resolutionar[resolution][1],3),dtype=uint8)
 #    try:
 #        cv_im = cv.CreateImageHeader((resolutionar[resolution][0],
 #                                      resolutionar[resolution][1]),
@@ -593,11 +608,37 @@ def MovingHead():
 ################################################################################
 def ALTrack(switch=1):
     """Turn head tracking on or off. Or get status = 2"""
+##    if switch == 1:
+##        InitTrack()
+##        trackfaceProxy.startTracker()
+##    elif switch == 0:
+##        trackfaceProxy.stopTracker()
+##        #EndTrack()
+##    else:
+##        return trackfaceProxy.isActive()
+    Tracker(switch)
+
+def Tracker(switch=1,targetName="Face", targetParam=0.1):
+    """Turn tracker on or off. Or get status = 2"""
+
+    
+##Target    Parameters Comment
+##RedBall   diameter of ball (meter)    Used to compute the distance between robot and ball. 
+##Face      width of face (meter)       Used to compute the distance between robot and face. 
+##LandMark  [size, [LandMarkId, ...]]   size is used to compute the distance between robot and LandMark. LandMarkId to specify the LandMark to track. 
+##LandMarks [[size, [LandMarkId, ...]], [size, [LandMarkId, ...]]] Same parameters as LandMark. One array by LandMark. 
+##People    [peopleId, ...]             Used to track a specific people. 
+##Sound     [distance, confidence]      distance is used to estimate sound position and confidence to filter sound location. 
+
     if switch == 1:
         InitTrack()
-        trackfaceProxy.startTracker()
+        # Add target to track.
+        trackerProxy.registerTarget(targetName, targetParam)
+        # Then, start tracker.
+        trackerProxy.track(targetName)
     elif switch == 0:
-        trackfaceProxy.stopTracker()
+        trackerProxy.stopTracker()
+        trackerProxy.unregisterAllTargets()
         #EndTrack()
     else:
         return trackfaceProxy.isActive()
@@ -618,13 +659,20 @@ def GoToPosture(thePosture, speed=0.5):
 
     postureProxy.goToPosture(thePosture, speed)
 
+def version(string):
+    n=string.find('.') # find first period
+    a=string[:n+1] # cut out the main version number plus period
+    b=string[n+1:].replace('.','') #remove any trailing periods
+
+    return float(a+b) # convert to float    
+
 ##############################################################################
 ## Put's Noa into its Initpose. Only use when standing or in crouch position.
 #############################################################################
 def InitPose(time_pos=0.5, speed=0.8):
     """Nao will move to initpose."""
 
-    motionProxy.setWalkTargetVelocity(0, 0, 0, 1)
+    Move(0.0,0.0,0.0) # stop moving
     sleep(0.1)
     # set stiffness
     motionProxy.stiffnessInterpolation('Body',1.0, time_pos)
@@ -678,7 +726,7 @@ def StiffenUpperBody(stiffness = True, int_time=0.1):
 ## Nao crouches and loosens it's joints.
 ###############################################################################
 def Crouch(speed=0.8):
-    motionProxy.setWalkTargetVelocity(0, 0, 0, 1)
+    Move(0.0,0.0,0.0) # stop moving
     sleep(0.1)
     GoToPosture("Crouch", speed)
     motionProxy.stiffnessInterpolation('Body',0, 0.5)
@@ -758,15 +806,56 @@ def Move(dx=0, dy=0, dtheta=0, freq=1):
     with a certain speed.
     """
     
-    motionProxy.setWalkTargetVelocity(dx, dy, dtheta, freq)
+    if version(__naoqi_version__)<2:
+        motionProxy.setWalkTargetVelocity(dx, dy, dtheta, freq)
+    else:
+        motionProxy.moveToward(dx,dy,dtheta)
     
 def ReadSonar():    
-    
+    """Read the left and right Sonar Values"""
     SonarLeft = "Device/SubDeviceList/US/Left/Sensor/Value"
     SonarRight = "Device/SubDeviceList/US/Right/Sensor/Value"
     SL=memoryProxy.getData(SonarLeft,0) # read sonar left value from memory
     SR=memoryProxy.getData(SonarRight ,0) # read sonar right value from memory
     return SL, SR
+
+def GetGyro():
+    """Get the Gyrometers Values"""
+    GyrX = memoryProxy.getData("Device/SubDeviceList/InertialSensor/GyrX/Sensor/Value")
+    GyrY = memoryProxy.getData("Device/SubDeviceList/InertialSensor/GyrY/Sensor/Value")
+    return GyrX, GyrY
+
+def GetAccel():
+    """Get the Accelerometers Values"""
+    AccX = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AccX/Sensor/Value")
+    AccY = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AccY/Sensor/Value")
+    AccZ = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AccZ/Sensor/Value")
+    return AccX, AccY, AccZ
+
+def GetTorsoAngle():
+    """Get the Computed Torso Angle in radians"""
+    TorsoAngleX = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value")
+    TorsoAngleY = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AngleY/Sensor/Value")
+    return TorsoAngleX, TorsoAngleY
+
+def GetFootSensors():
+    """Get the foot sensor values"""
+    # Get The Left Foot Force Sensor Values
+    LFsrFL = memoryProxy.getData("Device/SubDeviceList/LFoot/FSR/FrontLeft/Sensor/Value")
+    LFsrFR = memoryProxy.getData("Device/SubDeviceList/LFoot/FSR/FrontRight/Sensor/Value")
+    LFsrBL = memoryProxy.getData("Device/SubDeviceList/LFoot/FSR/RearLeft/Sensor/Value")
+    LFsrBR = memoryProxy.getData("Device/SubDeviceList/LFoot/FSR/RearRight/Sensor/Value")
+    LF=[LFsrFL, LFsrFR, LFsrBL, LFsrBR]
+
+    # Get The Right Foot Force Sensor Values
+    RFsrFL = memoryProxy.getData("Device/SubDeviceList/RFoot/FSR/FrontLeft/Sensor/Value")
+    RFsrFR = memoryProxy.getData("Device/SubDeviceList/RFoot/FSR/FrontRight/Sensor/Value")
+    RFsrBL = memoryProxy.getData("Device/SubDeviceList/RFoot/FSR/RearLeft/Sensor/Value")
+    RFsrBR = memoryProxy.getData("Device/SubDeviceList/RFoot/FSR/RearRight/Sensor/Value")
+    RF=[RFsrFL, RFsrFR, RFsrBL, RFsrBR]
+
+    return LF, RF
+
 ##################################################################################
 ## Allows Nao to move dx meters forward, dy meters sidways with final orientation of dtheta
 ################################################################################
@@ -780,10 +869,17 @@ def Walk(dx=0,dy=0,dtheta=0,post=False):
     Allows Nao to move in a certain direction.
     
     """
-    if post==False:
-        motionProxy.walkTo(dx, dy, dtheta)
+    if version(__naoqi_version__)<2:
+        if post==False:
+            motionProxy.walkTo(dx, dy, dtheta)
+        else:
+            motionProxy.post.walkTo(dx, dy, dtheta)
     else:
-        motionProxy.post.walkTo(dx, dy, dtheta)
+        if post==False:
+            motionProxy.moveTo(dx, dy, dtheta)
+        else:
+            motionProxy.post.moveTo(dx, dy, dtheta)
+
 
 ##################################################################################
 ## Moves nao head yaw and pitch of the provided values yaw_val and pitch_val
@@ -1226,10 +1322,22 @@ def DetectSpeech():
 
     return result
 
-def InitLandMark(period = 500):
+def InitLandMark(switch=True, period = 500):
     # Subscribe to the ALLandMarkDetection extractor
-    landmarkProxy.subscribe("Test_Mark", period, 0.0 )
-
+    global landmarkProxy
+    
+    landmarkProxy.subscribe(__nao_module_name__ , period, 0.0 )
+    if switch:
+        try:
+            landmarkProxy.subscribe(__nao_module_name__ , period, 0.0 )
+        except:
+            print "Could not subscribe to ALLandMarkDetection"
+    else:
+        try:
+            landmarkProxy.unsubscribe(__nao_module_name__ )
+        except:
+            print "Could not unsubscribe from ALLandMarkDetection"
+            
 def DetectLandMark():
     # Get data from landmark detection (assuming face detection has been activated).
     global memoryProxy
@@ -1257,12 +1365,12 @@ def DetectLandMark():
                                ])
     return detected, timestamp, markerInfo
 
-def InitSoundDetection(switch=1):
+def InitSoundDetection(switch=True):
     # Subscribe to the ALSoundDetection
     global soundProxy
 
     soundProxy.setParameter("Sensitivity", 0.3)    
-    if switch==1:
+    if switch:
         try:
             soundProxy.subscribe(__nao_module_name__ )
         except:
@@ -1307,11 +1415,11 @@ def DetectSound():
     return detected, timestamp, soundInfo
 
 
-def InitSoundLocalization(switch=1):
+def InitSoundLocalization(switch=True):
     # Subscribe to the ALSoundDetection
     global soundLocalizationProxy
     
-    if switch==1:
+    if switch:
         try:
             soundLocalizationProxy.subscribe(__nao_module_name__ )
         except:
