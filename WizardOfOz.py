@@ -1,23 +1,13 @@
-# -*- coding: cp1252 -*-
-# -*- coding: cp1252 -*-
-#import InitProxy
 import time
 from math import pi
 import msvcrt
 import nao_nocv_2_0 as nao
-import numpy as np
-
-#import run_movement
-#from datetime import datetime # import date and time for creating the result file
-#execfile("InitProxy.py")
-
-
-
+#import numpy as np
 
 # Set Nao IP Address
 
-#IP="192.168.0.115"      # IP address of real nao
-IP="127.0.0.1"
+IP="192.168.0.115"      # IP address of real nao
+#IP="127.0.0.1"
 
 
 nao.InitProxy(IP) # Initialize motion proxy
@@ -163,8 +153,4 @@ while (exitwhile==0):
 # turn off robot and quit    
 nao.ALTrack(False)
 nao.Crouch()
-
-
-
-
 
