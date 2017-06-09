@@ -41,8 +41,22 @@
 ## 1.39: Removed "from naoqi import xxx" statements.
 ## 1.40: Added ALRobotPosture proxy, GoToPosture and proper InitPose() and Crouch(); InitProxy rewritten 
 ## 1.41: Added Landmark detection, Sound localization  and Sound detection
+## 1.42: Added GetGyro, GetAccel, GetTorsoAngle, and GetFootSensors
 
-import cv
+### nao_nocv.py
+## 1.0 removed dependencies on OpenCV and Image libraries. InitVideo and GetImage modified, but broken.
+## 1.1 incorporated updates from nao.py version 1.38
+    ## 1.37: Updated FindFace to include arbitrary offset and gain. Default changed to up -0.2.
+    ## 1.38: Speed of GetImage() improved. Removed dependency on Python Image Library
+    ## 1.39: Removed "from naoqi import xxx" statements.
+## 1.2 updated to match nao.py version 1.40
+        ## 1.40: Added ALRobotPosture proxy, GoToPosture and proper InitPose() and Crouch(); InitProxy rewritten;
+## 1.3 updated to match nao.py version 1.41
+        # 1.41: Added Landmark detection, Sound localization  and Sound detection 
+## 2.0 updated to naoqi version 2.x
+        # 1.42: Added GetGyro, GetAccel, GetTorsoAngle, and GetFootSensors
+        
+#import cv
 from time import time
 from time import sleep
 #import Image
@@ -51,7 +65,7 @@ import math
 import sys
 import os
 import csv
-
+import numpy as np
 import naoqi
 
 from collections import deque
@@ -60,12 +74,12 @@ from collections import deque
 __naoqi_version__='2.1'
 __nao_module_name__ ="Nao Library"
 
-gftt_list = list() # initialize good features to track for opencv
-fast = 0 # initiliaze face detection state for opencv
+gftt_list = list()
+fast = 0
 time_q = deque([1,1,1,1,1,1,1,1,1,1])
 old_time = time()
 time_old_track = time()
-font = cv.InitFont(cv.CV_FONT_HERSHEY_TRIPLEX, 0.5, 0.5, 0.0, 1)
+#font = cv.InitFont(cv.CV_FONT_HERSHEY_TRIPLEX, 0.5, 0.5, 0.0, 1)
 
 ## Find the *.xml file for face detection.
 list_path = sys.path
@@ -73,7 +87,7 @@ for i in range (0,len(list_path)):
     if os.path.exists(list_path[i]+"/haarcascade_frontalface_alt2.xml"):
         break
    
-cascade_front = cv.Load(list_path[i]+"/haarcascade_frontalface_alt2.xml")
+#cascade_front = cv.Load(list_path[i]+"/haarcascade_frontalface_alt2.xml")
 
 interpol_time=0.3
 start_mov_t = time()
@@ -98,7 +112,7 @@ class ResolutionCamera:
         self.framerate=30
 
 
-resolution = ResolutionCamera()
+camera_resolution = ResolutionCamera()
 
 class Region:
     def __init__(self):
@@ -157,12 +171,16 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     global sonarProxy
     global postureProxy
     global landmarkProxy
+    global trackerProxy
+    global soundProxy
+    global soundLocalizationProxy
     
     global ALModuleList
     global proxyDict
     
-    ALModuleList=["ALTextToSpeech","ALAudioDevice","ALMotion","ALMemory","ALFaceDetection","ALVideoDevice","ALLeds","ALFaceTracker","ALSpeechRecognition","ALAudioPlayer","ALVideoRecorder","ALSonar","ALRobotPosture","ALLandMarkDetection","ALSoundDetection","ALAudioSourceLocalization"]
+    ALModuleList=["ALTextToSpeech","ALAudioDevice","ALMotion","ALMemory","ALFaceDetection","ALVideoDevice","ALLeds","ALFaceTracker","ALSpeechRecognition","ALAudioPlayer","ALVideoRecorder","ALSonar","ALRobotPosture","ALLandMarkDetection","ALTracker","ALSoundDetection","ALAudioSourceLocalization"]
     proxyDict={}
+    proxyDict=proxyDict.fromkeys(ALModuleList,None)
     #proxyList=[None]*(len(ALModuleList))
     
     # check if list is empty
@@ -193,9 +211,10 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     postureProxy=proxyDict["ALRobotPosture"]
     landmarkProxy=proxyDict["ALLandMarkDetection"]
     soundProxy=proxyDict["ALSoundDetection"]
-    soundsourceProxy=proxyDict["ALAudioSourceLocalization"]
+    soundLocalizationProxy=proxyDict["ALAudioSourceLocalization"]
+    trackerProxy=proxyDict["ALTracker"]
 
-def InitSonar(flag=1):
+def InitSonar(flag=True):
     
     #period = 100
     #precision = 0.1
@@ -205,10 +224,10 @@ def InitSonar(flag=1):
     else:
         try:
             sonarProxy.unsubscribe("test4" ) 
-            flag=0
+            flag=False
         except:
             print "Sonar already unsubscribed"
-            flag=0
+            flag=False
     return flag
    
 #################################################################################
@@ -280,6 +299,12 @@ def ALFacePosition(switch = True, period = 100):
         
     else:
         return [], False
+        
+def DetectFace(switch = True, period = 100):
+    facePosition, detected = ALFacePosition(switch, period)
+    timestamp=time()
+    
+    return detected, timestamp, facePosition # for consistency with DetectSound DetectLandmark etc
 
 ###############################################################################
 ## EyesLED() can change the color of the leds. The color parameter sets
@@ -426,50 +451,46 @@ def LoadDialog(file_name):
 ## nao.InitVideo() initialises the cv image and sets the variables on Nao.
 ## It allows you to give up the resolution. But first execute nao.InitProxy()
 ################################################################################
-def InitVideo(resolution):
+def InitVideo(resolution_id):
     global key
     global nameId
     global cameraProxy
-    global cv_im
+    global nao_img
 
-    resolutionar = [160,120],[320,240],[640,480],[1280,960]
-    framerate=30
-    key=0
-    random.random()*10
+    res = camera_resolution.resolutionar[resolution_id]
+    framerate=camera_resolution.framerate
+    kALColorSpace=0 #BGR: 11, RGB: 13
+    
     try:
-        nameId = cameraProxy.subscribe("python_GVM2"+str(random.random()*10), resolution, 0, 10) #0, 0, 10
+        nameId = cameraProxy.subscribe("python_GVM2"+str(random.random()*10), resolution_id, kALColorSpace, framerate) #0, 0, 10
     except NameError:
         print 'ALVideoDevice proxy undefined. Are you running a simulated naoqi?'
         return None
-    try:
-        cv_im = cv.CreateImageHeader((resolutionar[resolution][0],
-                                      resolutionar[resolution][1]),
-                                     cv.IPL_DEPTH_8U, 1)
-    except:
-        print "Cannot create image header"
-        return None
-    
-    return nameId
+    nao_img = np.zeros((res[0], res[1],3),dtype=np.uint8)
+
+    return nao_img
         
 #################################################################################
 ## nao.GetImage() gets the image from Nao. You will fist need to execute
 ## nao.Initvideo()
 #################################################################################
 def GetImage():
-    global img
-    global nameId
-    global cv_im
-    
+    global nao_img
+
     gotimage = False
     count = 0
     
     while not gotimage and count < 10:
         try:
             img =cameraProxy.getImageRemote(nameId)
-            #pi=Image.frombuffer("L",(img[0],img[1]),img[6]) # original version leading to warnings about future incompatibilities
-            #pi=Image.frombuffer("L",(img[0],img[1]),img[6],"raw", "L", 0, -1) # -1 is upside down orientation, 1 upright orientation
-            #pi=Image.fromstring("L",(img[0],img[1]),img[6])
-            
+            nao_img=img[6]
+
+
+
+
+#            pi=Image.frombuffer("L",(img[0],img[1]),img[6])
+
+
             gotimage =True
         except NameError:
             print 'ALVideoDevice proxy undefined. Are you running a simulated naoqi?'
@@ -477,149 +498,12 @@ def GetImage():
         except:
             count = count + 1
             print "problems with video buffer!! Did you initialize nao.InitVideo() the video first?"
-    #cv.SetData(cv_im, pi.tostring()) # conversion using PIL not necessary, pass img[6] directly to cv_im
-    #cv.Flip(cv_im,cv_im,0) # not needed when using from string
-    #key = cv.WaitKey(10) # only useful after a cv.ShowImage("test",cv_im)
-    cv.SetData(cv_im, img[6])
-    
-    return cv_im
 
-################################################################################
-## NOTE!! THIS FUNCTION STILL NEEDS TO BE CLEANED UP
-## nao.Detect(frame) looks for a face within the "frame".
-## it outputs a opencv image with a box around the face, the centre coordinates in approx. radians
-## and whether a face is detected
-################################################################################
-def Detect(frame, draw = True):
-    global face1_x
-    global face1_y
-    global face1_width
-    global face1_center
-    global old_face1_x
-    global old_face1_y
-    global old_face1_width
-    global fast
-    global windowsz
-    global cascade_front
+#    cv.SetData(cv_im, pi.tostring())
+#    cv.Flip(cv_im,cv_im,0)
 
-    roiscale = 2
-    windowscale = 10
-    face1_center = (0,0)
-    
-    if fast>0:
-    
-        if fast == 3:
-            #The cvrectangle defines the ROI that is used for face detection
-            #it depends on the previous location of the face and increases in
-            #size if no face is detected
-            cvrectangle = [face1_x-(face1_width/(roiscale*2)), 
-                           face1_y-(face1_width/(roiscale*2)),
-                           face1_width+(face1_width/roiscale),
-                           face1_width+(face1_width/roiscale)]
-            windowsz = face1_width-(face1_width/windowscale) 
-            old_face1_x = face1_x # windowsize should be kept as big as possible
-            old_face1_y = face1_y # a larger windowsz means faster detection
-            old_face1_width = face1_width
-        if fast == 2:
-            cvrectangle = [old_face1_x-(old_face1_width/(roiscale)),
-                           old_face1_y-(old_face1_width/(roiscale)),
-                           old_face1_width+(old_face1_width/(roiscale*0.5)),
-                           old_face1_width+(old_face1_width/(roiscale*0.5))]
-            windowsz = old_face1_width-(old_face1_width/(windowscale/2))
-        if fast == 1:
-            cvrectangle = [old_face1_x-(old_face1_width/(roiscale*0.5)),
-                           old_face1_y-(old_face1_width/(roiscale*0.5)),
-                           old_face1_width+(old_face1_width/(roiscale*0.25)),
-                           old_face1_width+(old_face1_width/(roiscale*0.25))]
-            windowsz = old_face1_width-(old_face1_width/(windowscale/4))
-        
-        for i in range (0,2): #Make sure the window under consideration is not
-            if cvrectangle[i]<0: #outside the camera region. If so, user edge
-                cvrectangle[i] = 0
-
-            if i == 0 and (cvrectangle[i]+cvrectangle[i+2]) > frame.width:
-                cvrectangle[i+2]= frame.width - cvrectangle[i]
-
-            if i == 1 and (cvrectangle[i]+cvrectangle[i+2]) > frame.height:
-                cvrectangle[i+2]= frame.height - cvrectangle[i]
-
-        if draw == True:
-            cv.Rectangle(frame, (cvrectangle[0], cvrectangle[1]),
-                    (cvrectangle[0]+cvrectangle[2],
-                     cvrectangle[1]+cvrectangle[3]),cv.RGB(0,255,0))
-
-        cv.SetImageROI(frame,tuple(cvrectangle))
-
-            
-    else:
-        windowsz = 20
-        cv.ResetImageROI(frame)
-    
-    
-    faces = cv.HaarDetectObjects(frame, cascade_front, cv.CreateMemStorage(0),1.2, 6, 1,(windowsz,windowsz))
-
-
-    cv.ResetImageROI(frame)
-        
-    try:
-        if fast > 0:
-            face1_x = faces[0][0][0]+cvrectangle[0] #These results are from the ROI 
-            face1_y = faces[0][0][1]+cvrectangle[1] #instead of from the entire image
-
-        else:
-            face1_x = faces[0][0][0]
-            face1_y = faces[0][0][1]
-
-        face1_width = faces[0][0][2]
-        face1_height = faces[0][0][3]
-        face1_center = (face1_x + (face1_width/2),face1_y + (face1_height/2))
-
-        region = Region()
-        region.x = face1_x
-        region.y = face1_y
-        region.width = face1_width
-        region.height = face1_height
-        
-        if draw == True:
-            cv.Rectangle(frame, (face1_x, face1_y),
-                         (face1_x+face1_width,face1_y+face1_height),
-                         cv.RGB(255,255,255))
-            cv.Circle(frame, face1_center, 2, cv.RGB(255, 0, 0))
-        fast = 3
-    except:
-        fast = fast-1
-        region = Region()
-
-    if fast == 3:
-        facedetected = True
-    else:
-        facedetected = False
-
-    face_loc = list(face1_center)
-    convrad = 0.55/(frame.width/2)
-    face_loc[0] = (face_loc[0] - (frame.width/2))*convrad
-    face_loc[1] = (face_loc[1] - (frame.height/2))*convrad
-    
-    return frame, face_loc, facedetected, region 
-    
-################################################################################
-## Function Framerate(frame) adds the framerate to the provided
-## opencv image "frame"
-################################################################################
-def Framerate(frame):
-    global time_q
-    global old_time
-    global font
-    time_q.append(round(time()-old_time,3))
-    time_q.popleft()
-    old_time = time()
-    avg_time = round(sum(time_q)/float(10),5)
-    cv.PutText(frame,
-               str(avg_time),
-               (15,15),
-               font,
-               cv.RGB(0,0,255))
-    return frame
+#    key = cv.WaitKey(10)
+    return nao_img
 
 ################################################################################
 ## Initializes the track function it stiffens the joints, gathers the IDPose
@@ -713,265 +597,46 @@ def MovingHead():
 ###############################################################################
 ## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-def FindObject(frame):
-    global old_frame
-    global gftt_list
-    global weights
-    global existence
-    
-    if not MovingHead():
-        try:
-            mask = FrameMask(old_frame, frame)
-        except:
-            old_frame = cv.CloneImage(frame)
-            gftt_list = list()
-            return None, None, False
-    else:
-        old_frame = cv.CloneImage(frame)
-        gftt_list = list()
-        return None, None, False
-
-    if mask == None:
-        gftt_list = list()
-        print "2"
-        return None, None, False
-
-    ## Find Good Features to track
-    if len(gftt_list) < 300:
-        #gftt_list.append((GoodFeaturesToTrack(old_frame, mask),1))
-        gftt_new, weights_new, existence_new = GoodFeaturesToTrack(old_frame, mask)
- 
-        if gftt_new != None:
-            gftt_list= gftt_list + gftt_new
-            weights = weights + weights_new
-            existence = existence + existence_new
-
-    gftt_list_new, weights, existence = OpticalFlow(frame,old_frame,gftt_list, weights, existence)
-    weights, existence = UpdatePointWeights(gftt_list_new, gftt_list, weights, existence)
-
-    gftt_list = gftt_list_new
-
-    gftt_list, weights, existence = DropPoints(gftt_list, weights, existence)
-    gftt_img = DrawPoints(frame,gftt_list)
-
-    if len(gftt_list)>30:
-        loc_obj = list()
-        loc_obj = AvgPoint(gftt_list,1)
-        cv.Circle(gftt_img,loc_obj,4,255,4,8,0)
-        convrad = 0.55/(frame.width/2)
-        loc_obj = list(loc_obj)
-        loc_obj[0]=(loc_obj[0] - (frame.width/2))*convrad
-        loc_obj[1]=(loc_obj[1] - (frame.height/2))*convrad
-    else: 
-        loc_obj = (None, None)
-    cv.ShowImage("Good Features",gftt_img)
-    cv.ShowImage("Difference", mask) 
-    cv.Copy(frame, old_frame)
-    if MovingHead():
-        print "Object Location = 0"
-        loc_obj[0] = 0
-        loc_obj[1] = 0
-        gftt_list = list()
-        old_frame = 0
-    return loc_obj[0], loc_obj[1], True
-    
-###############################################################################
-## Subfunction used by "FindObjects()". Returns a difference image
-###############################################################################
-def FrameMask(old_frame, frame):
-
-    if MovingHead():
-        return None
-    mask = cv.CloneImage(old_frame)
-    cv.AbsDiff(old_frame, frame, mask)
-    cv.Threshold(mask,mask, 15, 255, cv.CV_THRESH_BINARY) 
-    
-    return mask
-###############################################################################
-## Subfunction used in "FindObjects()" it is used to find the good features to
-## to track. Good Features are features in the image that are corners between
-## light and darker areas.
-###############################################################################
-def GoodFeaturesToTrack(image, mask):
-    list_gftt = list()
-    weights = list()
-    existence = list()
-    initpoint = 0
-    eig_image = cv.CreateMat(image.height ,image.width, cv.CV_32FC1)
-    temp_image = cv.CreateMat(image.height, image.width, cv.CV_32FC1)
-    gfttar = cv.GoodFeaturesToTrack(image, eig_image, temp_image, 25, 0.01, 5.0, mask, 3, 0, 0.04) 
-    gfttar = cv.FindCornerSubPix(image,
-                                 gfttar,
-                                 (10,10),
-                                 (-1, -1),
-                                 (cv.CV_TERMCRIT_ITER | cv.CV_TERMCRIT_EPS,20,0.03))
-
-
-    for i in range (0,len(gfttar)):
-        weights.append(1)
-        existence.append(1)
-
-    if len(gfttar) == 0:
-        return None, None, None
-                         
-    return gfttar, weights, existence
-###############################################################################
-## Subfunction used in "FindObjects()". It plots points gftt_list as circles in
-## "image".
-###############################################################################
-def DrawPoints(image,gftt_list):
-    gftt_image = cv.CloneImage(image)
-
-    try:
-        for i in range(0,len(gftt_list)):
-            cv.Circle(gftt_image,gftt_list[i],2,255,1,8,0)
-    except:
-        pass
-    
-    return gftt_image
-###############################################################################
-## Subfunction used in "FindObjects()". It calculates the new location of
-## previous points
-###############################################################################
-def OpticalFlow(imagenew,imageold,gfttar,weights=0,existence=0):
-
-    
-    pyrold = cv.CreateImage((imagenew.width,imagenew.height),
-                 cv.IPL_DEPTH_32F,
-                 1)
-    pyrnew = cv.CreateImage((imagenew.width,imagenew.height),
-                 cv.IPL_DEPTH_32F,
-                 1)
-    (gfttarnew,status,track_error)= cv.CalcOpticalFlowPyrLK(imageold,
-                            imagenew,
-                            pyrold,
-                            pyrnew,
-                            gfttar,
-                            (10,10),
-                            5,
-                            (cv.CV_TERMCRIT_ITER | cv.CV_TERMCRIT_EPS,20,0.03),
-                            0)
-
-
-    #UpdatePointWeights(list_gftt_new,list_gftt)
-    #DropPoints(gf
-    return gfttarnew, weights, existence
-
 ################################################################################
 # Track Face
 ################################################################################
 def ALTrack(switch=1):
     """Turn head tracking on or off. Or get status = 2"""
+##    if switch == 1:
+##        InitTrack()
+##        trackfaceProxy.startTracker()
+##    elif switch == 0:
+##        trackfaceProxy.stopTracker()
+##        #EndTrack()
+##    else:
+##        return trackfaceProxy.isActive()
+    Tracker(switch)
+
+def Tracker(switch=1,targetName="Face", targetParam=0.1):
+    """Turn tracker on or off. Or get status = 2"""
+
+    
+##Target    Parameters Comment
+##RedBall   diameter of ball (meter)    Used to compute the distance between robot and ball. 
+##Face      width of face (meter)       Used to compute the distance between robot and face. 
+##LandMark  [size, [LandMarkId, ...]]   size is used to compute the distance between robot and LandMark. LandMarkId to specify the LandMark to track. 
+##LandMarks [[size, [LandMarkId, ...]], [size, [LandMarkId, ...]]] Same parameters as LandMark. One array by LandMark. 
+##People    [peopleId, ...]             Used to track a specific people. 
+##Sound     [distance, confidence]      distance is used to estimate sound position and confidence to filter sound location. 
+
     if switch == 1:
         InitTrack()
-        trackfaceProxy.startTracker()
+        # Add target to track.
+        trackerProxy.registerTarget(targetName, targetParam)
+        # Then, start tracker.
+        trackerProxy.track(targetName)
     elif switch == 0:
-        trackfaceProxy.stopTracker()
+        trackerProxy.stopTracker()
+        trackerProxy.unregisterAllTargets()
         #EndTrack()
     else:
         return trackfaceProxy.isActive()
-            
 
-def OpticalFlowForOrientation(imagenew,imageold,gfttar,weights=0,existence=0):
-
-    pyrold = cv.CreateImage((imagenew.width,imagenew.height),
-                 cv.IPL_DEPTH_32F,
-                 1)
-    pyrnew = cv.CreateImage((imagenew.width,imagenew.height),
-                 cv.IPL_DEPTH_32F,
-                 1)
-    (gfttarnew,status,track_error)= cv.CalcOpticalFlowPyrLK(imageold,
-                            imagenew,
-                            pyrold,
-                            pyrnew,
-                            gfttar,
-                            (10,10),
-                            5,
-                            (cv.CV_TERMCRIT_ITER | cv.CV_TERMCRIT_EPS,20,0.03),
-                            0)
-
-    for i in range (0,len(status)):
-        if status[i] == 0:
-            gfttar.pop(i)
-            gfttarnew.pop(i)
-            
-            
-    return gfttarnew, gfttar
-
-def UpdatePointWeights(newpoints, oldpoints, weights, existence):
-    #remove points that do not move--------------------
-    minmove = 1.5 #minimal movement for the point not to disappear
-    #Calculate the vector length of the different points
-    difference = DifferencePoints(newpoints, oldpoints)
-
-    #fill the weights lists with appropriate values
-    for i in range (len(weights),len(newpoints)):
-        weights.append(1)
-        existence.append(1)
-    #i=0
-
-    for i in range(0,len(newpoints)-1):
-        weights[i]=weights[i] + (difference[i]-minmove)
-        existence[i] = existence[i] + 1
-        if weights[i] > 15:
-            weights[i] = 15
-        i = i+1
-    return (weights, existence)
-
-## is used in UpdatePointWeights
-def DifferencePoints(newpoints,oldpoints):
-    difference2 = list()
-##    if type(newpoints) != list:
-##        numpy.asarray(newpoints)
-##
-##    if type(oldpoints) !=list:
-##        numpy.asarray(oldpoints)
-    
-    for i in range(0,len(oldpoints)-1):
-        xcoor = math.sqrt(math.pow(newpoints[i][0]-oldpoints[i][0],2))
-        ycoor = math.sqrt(math.pow(newpoints[i][1]-oldpoints[i][1],2))
-        diff = math.sqrt(math.pow(xcoor,2)+math.pow(ycoor,2))
-        difference2.append(diff)
-    return difference2
-
-def DropPoints(points, weights, existence):
-    i=0
-    if MovingHead():
-        print "In movement!!!!"
-        return (list(),list(),list())
-    while i < len(weights)-1:
-        if weights[i] < 0 or existence[i] > 15:
-            weights.pop(i)
-            points.pop(i)
-            existence.pop(i)
-        else:
-            i = i+1
-    return (points,weights, existence)
-
-def AvgPoint(gfttar,meanormedian):
-    # 0=median, 1=mean
-    if meanormedian == 0:
-        x = list()
-        y = list()
-        for i in range (0, len(gfttar)):
-            x.append(gfttar[i][0])
-            y.append(gfttar[i][1])
-        y.sort()
-        x.sort()
-        indx = len(x)/2
-        indy = len(y)/2
-        return (x[indx],y[indy])         
-    else:
-        x = 0
-        y = 0
-        for i in range (0, len(gfttar)):
-            x = x + gfttar[i][0]
-            y = y + gfttar[i][1]
-        x = x/len(gfttar)
-        y = y/len(gfttar)
-        return (x, y)
-    
 ##############################################################################
 ## Go to one of the predefined postures
 #############################################################################
@@ -988,13 +653,20 @@ def GoToPosture(thePosture, speed=0.5):
 
     postureProxy.goToPosture(thePosture, speed)
 
+def version(string):
+    n=string.find('.') # find first period
+    a=string[:n+1] # cut out the main version number plus period
+    b=string[n+1:].replace('.','') #remove any trailing periods
+
+    return float(a+b) # convert to float    
+
 ##############################################################################
 ## Put's Noa into its Initpose. Only use when standing or in crouch position.
 #############################################################################
 def InitPose(time_pos=0.5, speed=0.8):
     """Nao will move to initpose."""
 
-    motionProxy.setWalkTargetVelocity(0, 0, 0, 1)
+    Move(0.0,0.0,0.0) # stop moving
     sleep(0.1)
     # set stiffness
     motionProxy.stiffnessInterpolation('Body',1.0, time_pos)
@@ -1048,74 +720,74 @@ def StiffenUpperBody(stiffness = True, int_time=0.1):
 ## Nao crouches and loosens it's joints.
 ###############################################################################
 def Crouch(speed=0.8):
-    motionProxy.setWalkTargetVelocity(0, 0, 0, 1)
+    Move(0.0,0.0,0.0) # stop moving
     sleep(0.1)
     GoToPosture("Crouch", speed)
     motionProxy.stiffnessInterpolation('Body',0, 0.5)
 
-# def Crouch():
-    # """Make Nao to crouch pose."""
-    
-    # # get the robot config
-    # robotConfig = motionProxy.getRobotConfig()
-    
-    # #for i in range(len(robotConfig[0])):
-    # #    print robotConfig[0][i], ": ", robotConfig[1][i]
-
-    # # "Model Type"   : "naoH25", "naoH21", "naoT14" or "naoT2".
-    # # "Head Version" : "VERSION_32" or "VERSION_33" or "VERSION_40".
-    # # "Body Version" : "VERSION_32" or "VERSION_33" or "VERSION_40".
-    # # "Laser"        : True or False.
-    # # "Legs"         : True or False.
-    # # "Arms"         : True or False.
-    # # "Extended Arms": True or False.
-    # # "Hands"        : True or False.
-    # # "Arm Version"  : "VERSION_32" or "VERSION_33" or "VERSION_40".
-    # # Number of Legs : 0 or 2
-    # # Number of Arms : 0 or 2
-    # # Number of Hands: 0 or 2
-    # if robotConfig[1][0]=="naoH25" or robotConfig[1][0]=="naoH21":
-        # pass
-    # else:
-        # print "Wrong robot type: cannot crouch without arms and legs"
-        # return
-    # if robotConfig[1][8]=="VERSION_32":
-        # allAngles = [0.0,0.0,                   # head
-                # 1.545, 0.33, -1.57, -0.486, 0.0, 0.0,       # left arm
-                # -0.3, 0.057, -0.744, 2.192, -1.122, -0.035,     # left leg
-                # -0.3, 0.057, -0.744, 2.192, -1.122, -0.035,         # right leg
-                # 1.545, -0.33, 1.57, 0.486, 0.0, 0.0]        # right arm
-    # elif robotConfig[1][8]=="VERSION_33":
-    # #Modified for robot version V33
-        # allAngles = [0.0,0.0,                   # head
-                # 1.545, 0.2, -1.56, -0.5, 0.0, 0.0,       # left arm
-                # -0.319, 0.037, -0.695, 2.11, -1.189, -0.026,     # left leg
-                # -0.319, 0.037, -0.695, 2.11, -1.189, -0.026,         # right leg
-                # 1.545, -0.2, 1.56, 0.5, 0.0, 0.0]        # right arm
-    # else:
-    # #Modified for robot version V4.0
-        # allAngles = [0.0,0.0,                   # head
-                # 1.53, 0.15, -1.56, -0.5, 0.0, 0.0,       # left arm
-                # -0.30, 0.05, -0.75, 2.11, -1.19, -0.04,     # left leg
-                # -0.30, 0.05, -0.75, 2.11, -1.19, -0.04,         # right leg
-                # 1.53, -0.15, 1.56, 0.5, 0.0, 0.0]        # right arm
-
-    # numJoints = len(motionProxy.getJointNames('Body'))
-    # if (numJoints == 26):
-        # angles = allAngles
-    # elif (numJoints == 22):  # no hands (e.g. simulator)
-        # angles = allAngles[0:6] + allAngles[8:24]
-    # else:
-        # print "error in numJoints"
-            
-    # try:
-        # motionProxy.angleInterpolation('Body', angles, 1.5, True);
-
-    # except RuntimeError,e:
-        # print "An error has been caught"
-        # print e
-
-    # motionProxy.stiffnessInterpolation('Body',0, 0.5)
+##def Crouch():
+##    """Make Nao to crouch pose."""
+##    
+##  # get the robot config
+##    robotConfig = motionProxy.getRobotConfig()
+##    
+##  #for i in range(len(robotConfig[0])):
+##    #    print robotConfig[0][i], ": ", robotConfig[1][i]
+##
+##    # "Model Type"   : "naoH25", "naoH21", "naoT14" or "naoT2".
+##    # "Head Version" : "VERSION_32" or "VERSION_33" or "VERSION_40".
+##    # "Body Version" : "VERSION_32" or "VERSION_33" or "VERSION_40".
+##    # "Laser"        : True or False.
+##    # "Legs"         : True or False.
+##    # "Arms"         : True or False.
+##    # "Extended Arms": True or False.
+##    # "Hands"        : True or False.
+##    # "Arm Version"  : "VERSION_32" or "VERSION_33" or "VERSION_40".
+##    # Number of Legs : 0 or 2
+##    # Number of Arms : 0 or 2
+##    # Number of Hands: 0 or 2
+##    if robotConfig[1][0]=="naoH25" or robotConfig[1][0]=="naoH21":
+##        pass
+##    else:
+##        print "Wrong robot type: cannot crouch without arms and legs"
+##        return
+##    if robotConfig[1][8]=="VERSION_32":
+##      allAngles = [0.0,0.0,                   # head
+##              1.545, 0.33, -1.57, -0.486, 0.0, 0.0,       # left arm
+##              -0.3, 0.057, -0.744, 2.192, -1.122, -0.035,     # left leg
+##              -0.3, 0.057, -0.744, 2.192, -1.122, -0.035,         # right leg
+##              1.545, -0.33, 1.57, 0.486, 0.0, 0.0]        # right arm
+##    elif robotConfig[1][8]=="VERSION_33":
+##    #Modified for robot version V33
+##      allAngles = [0.0,0.0,                   # head
+##              1.545, 0.2, -1.56, -0.5, 0.0, 0.0,       # left arm
+##              -0.319, 0.037, -0.695, 2.11, -1.189, -0.026,     # left leg
+##              -0.319, 0.037, -0.695, 2.11, -1.189, -0.026,         # right leg
+##              1.545, -0.2, 1.56, 0.5, 0.0, 0.0]        # right arm
+##    else:
+##    #Modified for robot version V4.0
+##      allAngles = [0.0,0.0,                   # head
+##              1.53, 0.15, -1.56, -0.5, 0.0, 0.0,       # left arm
+##              -0.30, 0.05, -0.75, 2.11, -1.19, -0.04,     # left leg
+##              -0.30, 0.05, -0.75, 2.11, -1.19, -0.04,         # right leg
+##              1.53, -0.15, 1.56, 0.5, 0.0, 0.0]        # right arm
+##
+##    numJoints = len(motionProxy.getJointNames('Body'))
+##    if (numJoints == 26):
+##        angles = allAngles
+##    elif (numJoints == 22):  # no hands (e.g. simulator)
+##        angles = allAngles[0:6] + allAngles[8:24]
+##    else:
+##        print "error in numJoints"
+##            
+##    try:
+##        motionProxy.angleInterpolation('Body', angles, 1.5, True);
+##
+##    except RuntimeError,e:
+##        print "An error has been caught"
+##        print e
+##
+##    motionProxy.stiffnessInterpolation('Body',0, 0.5)
     
 ##################################################################################
 ## Allows Nao to move in a certain direction with a certain speed.
@@ -1128,15 +800,56 @@ def Move(dx=0, dy=0, dtheta=0, freq=1):
     with a certain speed.
     """
     
-    motionProxy.setWalkTargetVelocity(dx, dy, dtheta, freq)
+    if version(__naoqi_version__)<2:
+        motionProxy.setWalkTargetVelocity(dx, dy, dtheta, freq)
+    else:
+        motionProxy.moveToward(dx,dy,dtheta)
     
 def ReadSonar():    
-    
+    """Read the left and right Sonar Values"""
     SonarLeft = "Device/SubDeviceList/US/Left/Sensor/Value"
     SonarRight = "Device/SubDeviceList/US/Right/Sensor/Value"
     SL=memoryProxy.getData(SonarLeft,0) # read sonar left value from memory
     SR=memoryProxy.getData(SonarRight ,0) # read sonar right value from memory
     return SL, SR
+
+def GetGyro():
+    """Get the Gyrometers Values"""
+    GyrX = memoryProxy.getData("Device/SubDeviceList/InertialSensor/GyrX/Sensor/Value")
+    GyrY = memoryProxy.getData("Device/SubDeviceList/InertialSensor/GyrY/Sensor/Value")
+    return GyrX, GyrY
+
+def GetAccel():
+    """Get the Accelerometers Values"""
+    AccX = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AccX/Sensor/Value")
+    AccY = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AccY/Sensor/Value")
+    AccZ = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AccZ/Sensor/Value")
+    return AccX, AccY, AccZ
+
+def GetTorsoAngle():
+    """Get the Computed Torso Angle in radians"""
+    TorsoAngleX = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value")
+    TorsoAngleY = memoryProxy.getData("Device/SubDeviceList/InertialSensor/AngleY/Sensor/Value")
+    return TorsoAngleX, TorsoAngleY
+
+def GetFootSensors():
+    """Get the foot sensor values"""
+    # Get The Left Foot Force Sensor Values
+    LFsrFL = memoryProxy.getData("Device/SubDeviceList/LFoot/FSR/FrontLeft/Sensor/Value")
+    LFsrFR = memoryProxy.getData("Device/SubDeviceList/LFoot/FSR/FrontRight/Sensor/Value")
+    LFsrBL = memoryProxy.getData("Device/SubDeviceList/LFoot/FSR/RearLeft/Sensor/Value")
+    LFsrBR = memoryProxy.getData("Device/SubDeviceList/LFoot/FSR/RearRight/Sensor/Value")
+    LF=[LFsrFL, LFsrFR, LFsrBL, LFsrBR]
+
+    # Get The Right Foot Force Sensor Values
+    RFsrFL = memoryProxy.getData("Device/SubDeviceList/RFoot/FSR/FrontLeft/Sensor/Value")
+    RFsrFR = memoryProxy.getData("Device/SubDeviceList/RFoot/FSR/FrontRight/Sensor/Value")
+    RFsrBL = memoryProxy.getData("Device/SubDeviceList/RFoot/FSR/RearLeft/Sensor/Value")
+    RFsrBR = memoryProxy.getData("Device/SubDeviceList/RFoot/FSR/RearRight/Sensor/Value")
+    RF=[RFsrFL, RFsrFR, RFsrBL, RFsrBR]
+
+    return LF, RF
+
 ##################################################################################
 ## Allows Nao to move dx meters forward, dy meters sidways with final orientation of dtheta
 ################################################################################
@@ -1150,10 +863,17 @@ def Walk(dx=0,dy=0,dtheta=0,post=False):
     Allows Nao to move in a certain direction.
     
     """
-    if post==False:
-        motionProxy.walkTo(dx, dy, dtheta)
+    if version(__naoqi_version__)<2:
+        if post==False:
+            motionProxy.walkTo(dx, dy, dtheta)
+        else:
+            motionProxy.post.walkTo(dx, dy, dtheta)
     else:
-        motionProxy.post.walkTo(dx, dy, dtheta)
+        if post==False:
+            motionProxy.moveTo(dx, dy, dtheta)
+        else:
+            motionProxy.post.moveTo(dx, dy, dtheta)
+
 
 ##################################################################################
 ## Moves nao head yaw and pitch of the provided values yaw_val and pitch_val
@@ -1596,10 +1316,22 @@ def DetectSpeech():
 
     return result
 
-def InitLandMark(period = 500):
+def InitLandMark(switch=True, period = 500):
     # Subscribe to the ALLandMarkDetection extractor
-    landmarkProxy.subscribe("Test_Mark", period, 0.0 )
-
+    global landmarkProxy
+    
+    landmarkProxy.subscribe(__nao_module_name__ , period, 0.0 )
+    if switch:
+        try:
+            landmarkProxy.subscribe(__nao_module_name__ , period, 0.0 )
+        except:
+            print "Could not subscribe to ALLandMarkDetection"
+    else:
+        try:
+            landmarkProxy.unsubscribe(__nao_module_name__ )
+        except:
+            print "Could not unsubscribe from ALLandMarkDetection"
+            
 def DetectLandMark():
     # Get data from landmark detection (assuming face detection has been activated).
     global memoryProxy
@@ -1627,12 +1359,12 @@ def DetectLandMark():
                                ])
     return detected, timestamp, markerInfo
 
-def InitSoundDetection(switch=1):
+def InitSoundDetection(switch=True):
     # Subscribe to the ALSoundDetection
     global soundProxy
 
     soundProxy.setParameter("Sensitivity", 0.3)    
-    if switch==1:
+    if switch:
         try:
             soundProxy.subscribe(__nao_module_name__ )
         except:
@@ -1677,11 +1409,11 @@ def DetectSound():
     return detected, timestamp, soundInfo
 
 
-def InitSoundLocalization(switch=1):
+def InitSoundLocalization(switch=True):
     # Subscribe to the ALSoundDetection
     global soundLocalizationProxy
     
-    if switch==1:
+    if switch:
         try:
             soundLocalizationProxy.subscribe(__nao_module_name__ )
         except:
