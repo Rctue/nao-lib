@@ -1,4 +1,4 @@
-## Nao functions version 1.41
+## Nao functions version 2.0
 ## change log:
 ## 1.02: Added class "Region"
 ## 1.02: Resolution stuff.
@@ -74,8 +74,8 @@ from collections import deque
 __naoqi_version__='2.1'
 __nao_module_name__ ="Nao Library"
 
-gftt_list = list()
-fast = 0
+gftt_list = list() # initialize good features to track for opencv
+fast = 0 # initiliaze face detection state for opencv
 time_q = deque([1,1,1,1,1,1,1,1,1,1])
 old_time = time()
 time_old_track = time()
