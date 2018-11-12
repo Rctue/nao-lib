@@ -3,13 +3,21 @@ import time
 
 
 def testsonar(maxcount=10):
-    nao.InitSonar()
-    count=0
-    while count<maxcount:
-        [sl,sr]= nao.ReadSonar()
-        print sl,sr
-        count=count+1
-    nao.InitSonar(False)
+    try:
+        print "Testing sonar ..."
+        nao.InitSonar()
+        count=0
+        while count<maxcount:
+            [sl,sr]= nao.ReadSonar()
+            print sl,sr
+            count=count+1
+        nao.InitSonar(False)
+        print "success."
+        return True
+    except:
+        print "failed."
+        return False
+        
 
 def testsound(maxcount=10):
     nao.InitSoundDetection()
@@ -49,10 +57,22 @@ def testsoundlocalization(maxcount=10):
         print "no detection."
     return succeeded
 
-def testcamera(maxcount=10):
-    max_resolution=nao.resolution.very_high
+def testcamera(maxcount=1):
+    max_resolution=nao.camera_resolution.very_high
 
-    nao.InitLandMark()
+    for i in range(max_resolution+1):
+        #face detection 
+        t=time.time()
+        nao.InitVideo(i)
+        count=0
+        while count<maxcount:
+            nao_im=nao.GetImage()
+            count=count+1
+
+
+def testfacedetect(maxcount=10):
+    max_resolution=nao.camera_resolution.very_high
+
     for i in range(max_resolution+1):
         #face detection 
         t=time.time()
@@ -62,35 +82,37 @@ def testcamera(maxcount=10):
             faceposition, detected = nao.ALFacePosition()
             print faceposition, detected
             count=count+1
-        print "Face detection at ", nao.resolution.resolutionar[i], " complete at ", time.time()-t
+        print "Face detection at ", nao.camera_resolution.resolutionar[i], " complete at ", time.time()-t
 
        
-
+def testlandmark(maxcount=10):
         #Landmark detection
+    nao.InitLandMark()
+    for i in range(max_resolution+1):
         t=time.time()
         count=0
         while count<maxcount:
             detected, timestamp, markerinfo = nao.DetectLandMark()
             print detected, timestamp, markerinfo
             count=count+1
-        print "Landmark detection at ",nao.resolution.resolutionar[i], " complete at ",time.time()-t
+        print "Landmark detection at ",nao.camera_resolution.resolutionar[i], " complete at ",time.time()-t
 
 
-def testplayer(filename="mp3/Thriller.mp3"):
+def testplayer(filename="chopin.mp3"):
     id=nao.Play(filename)
-    time.sleep(10)
+    time.sleep(3)
     print "Pausing.." 
     nao.Pause(id)
-    time.sleep(10)
-    print "Continuing .."
-    nao.Resume(id)
+    time.sleep(1)
+    print "Continueing .."
+    nao.Pause(id)
     time.sleep(2)
     print "Stop."
     nao.StopPlay()
     time.sleep(1)
     print "Start from position .."
     nao.playFileFromPosition(filename, 100)
-    time.sleep(15)
+    time.sleep(5)
     print "Stop."
     nao.StopPlay()
 
@@ -156,20 +178,21 @@ def testspeech(maxcount=50):
 if __name__=="__main__":
 #   ip="192.168.0.115"
 #    port=9559
-#    ip="127.0.0.1"
+    ip="127.0.0.1"
 #    port=50021
-    ip="192.168.0.117"
+#    ip="192.168.0.118"
     port=9559
     
     nao.InitProxy(ip,[0],port)
 #    result=testwalking()
-#    result=testsonar(5)
-#    result=testcamera()
-    result=testplayer()
+    result=testsonar(5)
+    result=testcamera()
+    result=testlandmark()
+#    result=testplayer()
 #    result=testsound(50)
 #    result=testsoundlocalization(50)
-#    result=testleds()
+    result=testleds()
     #result=testgestures()
-#    result=testspeech()
+    result=testspeech()
     
     

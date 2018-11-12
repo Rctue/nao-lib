@@ -54,11 +54,10 @@ def EndVideo():
         return None
     return nameId
 
-def GetImage(nameId):
+def GetImage(nameId, max_count=10):
     
     gotimage = False
     count = 0
-    max_count=10
     cv_im=None
     while not gotimage and count < max_count:
         try:
@@ -70,23 +69,23 @@ def GetImage(nameId):
             break
         except:
             count = count + 1
-            print "problems with video buffer!! Did you initialize nao.InitVideo() the video first?"
+            print "Unable to retrieve image form cameraProxy ", nao.cameraProxy, " and nameId ", nameId
   
     return cv_im
     
-nao.InitProxy("127.0.0.1",[0])
-nao.InitPose()
-nameId=InitVideo(2,10,0,1)
-nao.Move(1,0,0)
+nao.InitProxy("192.168.0.115",[0])
+#nao.InitPose()
+nameId=InitVideo(2,10,0,0)
+#nao.Move(1,0,0)
+
 while True:
     im=GetImage(nameId)
     cv2.imshow("frame",im)
-    key=cv2.waitKey(1)
-    if key==ord('c'):
-        nao.cameraProxy.setActiveCamera(1)
-    elif key==ord('q'):
+    key=cv2.waitKey(1)     
+                
+    if key==ord('q'):
         break
-nao.Crouch()
+#nao.Crouch()
 EndVideo()
 nao.sleep(1)
-nao.cv.DestroyAllWindows()
+cv2.destroyAllWindows()

@@ -573,7 +573,8 @@ def Detect(frame, draw = True):
                     (cvrectangle[0]+cvrectangle[2],
                      cvrectangle[1]+cvrectangle[3]),cv.RGB(0,255,0))
 
-        cv.SetImageROI(frame,tuple(cvrectangle))
+        cv.SetImageROI(frame,(int(cvrectangle[0]),int(cvrectangle[1]),int(cvrectangle[2]),int(cvrectangle[3])))
+
 
             
     else:
