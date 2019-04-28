@@ -74,12 +74,14 @@ class Nao(naoqi.ALModule):
 
     """
     NaoBroker = None
+    naoqi=None
     def __init__(self, name='NaoBroker', nao_ip='localhost',nao_port=9559):
         self.name=name #Make sure the name you pass to the constructor of ALModule matches the name of your variable.
         if self.NaoBroker == None:
             self.NaoBroker=naoqi.ALBroker(self.name,"0.0.0.0",0,nao_ip,nao_port)
             print "Broker ", self.NaoBroker, " initialized at ", nao_ip, " ", nao_port
-        naoqi.ALModule.__init__(self, name)
+        if self.naoqi==None:
+            self.naoqi=naoqi.ALModule.__init__(self, name)
         
         try:
             self.motionProxy = naoqi.ALProxy("ALMotion")
@@ -200,7 +202,7 @@ class Nao_Interface(Nao):
 #####################################################
 ### constructor
     def __init__(self, name='NaoBroker', nao_ip='localhost',nao_port=9559):
-        Nao.__init__(self, name, nao_ip, nao_port)
+        self.nao=Nao.__init__(self, name, nao_ip, nao_port)
         time.sleep(1)
         
         self.InitCamera(1)

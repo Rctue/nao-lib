@@ -109,18 +109,25 @@ class Monitor():
             
                      
 if __name__=="__main__":
-    nao_ip="192.168.0.115"
-    n=Nao_Interface("n",nao_ip)
+    nao_ip="192.168.0.112"
+    n=Nao_Interface("n9",nao_ip)
     m=Monitor(n.memoryProxy,['Device/SubDeviceList/LHand/Touch/Back/Sensor/Value',
                              'Device/SubDeviceList/RHand/Touch/Back/Sensor/Value',
                              'Device/SubDeviceList/LHand/Touch/Left/Sensor/Value',
                              'Device/SubDeviceList/RHand/Touch/Left/Sensor/Value',
                              'Device/SubDeviceList/LHand/Touch/Right/Sensor/Value',
                              'Device/SubDeviceList/RHand/Touch/Right/Sensor/Value'])
+##    m=Monitor(n.memoryProxy,['Device/SubDeviceList/HeadYaw/Position/Actuator/Value',
+##                             'Device/SubDeviceList/HeadYaw/Position/Sensor/Value'])
     print "Start monitoring left/right hand touch."
-    n.sensorsProxy.run()
-    m.start()
+    #n.sensorsProxy.run()
+    #m.start(interval=0.2, duration=30)
+
+    dur=30
+    mythread=m.start(interval=0.2, duration=dur, use_thread=True)
+    time.sleep(dur)
     print m.data
 
     plt.plot(m.times,m.data)
+    plt.legend(['LBack' ,'RBack', 'LLeft','RLeft', 'LRight','RRight'])
     plt.show()
