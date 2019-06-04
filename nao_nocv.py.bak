@@ -1,4 +1,4 @@
-## Nao functions version 2.0
+## Nao functions version 2.1
 ## change log:
 ## 1.02: Added class "Region"
 ## 1.02: Resolution stuff.
@@ -55,6 +55,7 @@
         # 1.41: Added Landmark detection, Sound localization  and Sound detection 
 ## 2.0 updated to naoqi version 2.x
         # 1.42: Added GetGyro, GetAccel, GetTorsoAngle, and GetFootSensors
+## 2.1 updated DetectFace and ALFacePostion to pass faceinfo as fourth and third argument respectively
         
 #import cv
 from time import time
@@ -293,18 +294,18 @@ def ALFacePosition(switch = True, period = 100):
         alface_subscribed == False
     #print " location face: " , location_face
     if location_face==None:
-        location_face=[]
-    if len(location_face) >= 2: # Changed with respect to old naoqi versions
-        return [-location_face[1][0][0][1],location_face[1][0][0][2]], True
+        return [], False, None
+    elif len(location_face) >= 2: # Changed with respect to old naoqi versions
+        return [-location_face[1][0][0][1],location_face[1][0][0][2]], True, location_face
         
     else:
-        return [], False
+        return [], False, []
         
 def DetectFace(switch = True, period = 100):
-    facePosition, detected = ALFacePosition(switch, period)
+    facePosition, detected, faceinfo = ALFacePosition(switch, period)
     timestamp=time()
     
-    return detected, timestamp, facePosition # for consistency with DetectSound DetectLandmark etc
+    return detected, timestamp, facePosition, faceinfo # for consistency with DetectSound DetectLandmark etc
 
 ###############################################################################
 ## EyesLED() can change the color of the leds. The color parameter sets
@@ -950,6 +951,13 @@ def Play(file_name):
 def Pause(id_music):
 
     playProxy.post.pause(id_music)
+
+###########
+# Resume
+########################
+def Resume(id_music):
+
+    playProxy.post.play(id_music)
 
 
 ########################

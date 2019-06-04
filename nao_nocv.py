@@ -1,4 +1,4 @@
-## Nao functions version 1.41
+## Nao functions version 2.1
 ## change log:
 ## 1.02: Added class "Region"
 ## 1.02: Resolution stuff.
@@ -55,6 +55,7 @@
         # 1.41: Added Landmark detection, Sound localization  and Sound detection 
 ## 2.0 updated to naoqi version 2.x
         # 1.42: Added GetGyro, GetAccel, GetTorsoAngle, and GetFootSensors
+## 2.1 updated DetectFace and ALFacePostion to pass faceinfo as fourth and third argument respectively
         
 #import cv
 from time import time
@@ -71,11 +72,12 @@ import naoqi
 from collections import deque
 
 
+__nao_lib_version__='2.1'
 __naoqi_version__='2.1'
 __nao_module_name__ ="Nao Library"
 
-gftt_list = list()
-fast = 0
+gftt_list = list() # initialize good features to track for opencv
+fast = 0 # initiliaze face detection state for opencv
 time_q = deque([1,1,1,1,1,1,1,1,1,1])
 old_time = time()
 time_old_track = time()
@@ -112,7 +114,7 @@ class ResolutionCamera:
         self.framerate=30
 
 
-resolution = ResolutionCamera()
+camera_resolution = ResolutionCamera()
 
 class Region:
     def __init__(self):
@@ -293,18 +295,18 @@ def ALFacePosition(switch = True, period = 100):
         alface_subscribed == False
     #print " location face: " , location_face
     if location_face==None:
-        location_face=[]
-    if len(location_face) >= 2: # Changed with respect to old naoqi versions
-        return [-location_face[1][0][0][1],location_face[1][0][0][2]], True
+        return [], False, None
+    elif len(location_face) >= 2: # Changed with respect to old naoqi versions
+        return [-location_face[1][0][0][1],location_face[1][0][0][2]], True, location_face
         
     else:
-        return [], False
+        return [], False, []
         
 def DetectFace(switch = True, period = 100):
-    facePosition, detected = ALFacePosition(switch, period)
+    facePosition, detected, faceinfo = ALFacePosition(switch, period)
     timestamp=time()
     
-    return detected, timestamp, facePosition # for consistency with DetectSound DetectLandmark etc
+    return detected, timestamp, facePosition, faceinfo # for consistency with DetectSound DetectLandmark etc
 
 ###############################################################################
 ## EyesLED() can change the color of the leds. The color parameter sets
@@ -451,38 +453,31 @@ def LoadDialog(file_name):
 ## nao.InitVideo() initialises the cv image and sets the variables on Nao.
 ## It allows you to give up the resolution. But first execute nao.InitProxy()
 ################################################################################
-def InitVideo(resolution):
+def InitVideo(resolution_id):
     global key
     global nameId
     global cameraProxy
-    global cv_im
+    global nao_img
 
-    resolutionar = [160,120],[320,240],[640,480],[1280,960]
-    framerate=10
+    res = camera_resolution.resolutionar[resolution_id]
+    framerate=camera_resolution.framerate
     kALColorSpace=0 #BGR: 11, RGB: 13
     
     try:
-        nameId = cameraProxy.subscribe("python_GVM2"+str(random.random()*10), resolution, kALColorSpace, framerate) #0, 0, 10
+        nameId = cameraProxy.subscribe("python_GVM2"+str(random.random()*10), resolution_id, kALColorSpace, framerate) #0, 0, 10
     except NameError:
         print 'ALVideoDevice proxy undefined. Are you running a simulated naoqi?'
         return None
-    cv_im = np.zeros((resolutionar[resolution][0], resolutionar[resolution][1],3),dtype=uint8)
-#    try:
-#        cv_im = cv.CreateImageHeader((resolutionar[resolution][0],
-#                                      resolutionar[resolution][1]),
+    nao_img = np.zeros((res[0], res[1],3),dtype=np.uint8)
 
-#                                     cv.IPL_DEPTH_8U, 1)
-
-#    except:
-#        print "Cannot create image header"
-#        return None
+    return nao_img
         
 #################################################################################
 ## nao.GetImage() gets the image from Nao. You will fist need to execute
 ## nao.Initvideo()
 #################################################################################
 def GetImage():
-    global img
+    global nao_img
 
     gotimage = False
     count = 0
@@ -490,6 +485,7 @@ def GetImage():
     while not gotimage and count < 10:
         try:
             img =cameraProxy.getImageRemote(nameId)
+            nao_img=img[6]
 
 
 
@@ -509,7 +505,7 @@ def GetImage():
 #    cv.Flip(cv_im,cv_im,0)
 
 #    key = cv.WaitKey(10)
-#    return cv_im
+    return nao_img
 
 ################################################################################
 ## Initializes the track function it stiffens the joints, gathers the IDPose
@@ -956,6 +952,13 @@ def Play(file_name):
 def Pause(id_music):
 
     playProxy.post.pause(id_music)
+
+###########
+# Resume
+########################
+def Resume(id_music):
+
+    playProxy.post.play(id_music)
 
 
 ########################

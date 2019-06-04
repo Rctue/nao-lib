@@ -69,35 +69,22 @@ import csv
 import numpy as np
 import naoqi
 
-from collections import deque
 
 
+__nao_lib_version__='2.1'
 __naoqi_version__='2.1'
 __nao_module_name__ ="Nao Library"
 
-gftt_list = list() # initialize good features to track for opencv
-fast = 0 # initiliaze face detection state for opencv
-time_q = deque([1,1,1,1,1,1,1,1,1,1])
-old_time = time()
 time_old_track = time()
-#font = cv.InitFont(cv.CV_FONT_HERSHEY_TRIPLEX, 0.5, 0.5, 0.0, 1)
 
-## Find the *.xml file for face detection.
-list_path = sys.path
-for i in range (0,len(list_path)):
-    if os.path.exists(list_path[i]+"/haarcascade_frontalface_alt2.xml"):
-        break
-   
-#cascade_front = cv.Load(list_path[i]+"/haarcascade_frontalface_alt2.xml")
-
+# defaults for Tracker
 interpol_time=0.3
 start_mov_t = time()
-weights = list()
-existence = list()
-id_pose = None
-alface_subscribed = False
 xtargetold = 0
 ytargetold = 0
+
+id_pose = None
+alface_subscribed = False
 
 class ResolutionCamera:
     def __init__(self):
@@ -500,10 +487,6 @@ def GetImage():
             count = count + 1
             print "problems with video buffer!! Did you initialize nao.InitVideo() the video first?"
 
-#    cv.SetData(cv_im, pi.tostring())
-#    cv.Flip(cv_im,cv_im,0)
-
-#    key = cv.WaitKey(10)
     return nao_img
 
 ################################################################################
@@ -582,22 +565,7 @@ def Track(target_loc, detected, speed = 5, min_move = 0.04):
         except RuntimeError,e:
             print "Kan hoofd niet draaien"
         start_mov_t = time()
-################################################################################
 
-
-
-## Is used to see if Nao's head is moving.
-################################################################################
-def MovingHead():
-    time_mov = time()-start_mov_t
-    if time_mov > 2*interpol_time:
-        return False
-    else:
-        return True
-    return
-###############################################################################
-## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ################################################################################
 # Track Face
 ################################################################################

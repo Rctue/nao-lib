@@ -71,6 +71,7 @@ import naoqi
 from collections import deque
 
 
+__nao_lib_version__='2.0'
 __naoqi_version__='2.1'
 __nao_module_name__ ="Nao Library"
 
@@ -499,10 +500,6 @@ def GetImage():
             count = count + 1
             print "problems with video buffer!! Did you initialize nao.InitVideo() the video first?"
 
-#    cv.SetData(cv_im, pi.tostring())
-#    cv.Flip(cv_im,cv_im,0)
-
-#    key = cv.WaitKey(10)
     return nao_img
 
 ################################################################################

@@ -1,4 +1,4 @@
-import nao_nocv_2_0 as nao
+import nao_nocv_2_1 as nao
 import time
 
 
@@ -158,7 +158,7 @@ if __name__=="__main__":
 #    port=9559
 #    ip="127.0.0.1"
 #    port=50021
-    ip="192.168.0.117"
+    ip="192.168.0.112"
     port=9559
     
     nao.InitProxy(ip,[0],port)

@@ -71,6 +71,7 @@ import naoqi
 from collections import deque
 
 
+__nao_lib_version__='2.0'
 __naoqi_version__='2.1'
 __nao_module_name__ ="Nao Library"
 
