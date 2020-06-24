@@ -7,6 +7,7 @@ import sys
 import os
 from collections import deque
 from time import time
+import math
 
 gftt_list = list() # initialize good features to track for opencv
 fast = 0 # initiliaze face detection state for opencv
@@ -340,10 +341,10 @@ def FrameMask(old_frame, frame):
 ## light and darker areas.
 ###############################################################################
 def GoodFeaturesToTrack(image, mask):
-    list_gftt = list()
+    #list_gftt = list()
     weights = list()
     existence = list()
-    initpoint = 0
+    #initpoint = 0
     eig_image = cv.CreateMat(image.height ,image.width, cv.CV_32FC1)
     temp_image = cv.CreateMat(image.height, image.width, cv.CV_32FC1)
     gfttar = cv.GoodFeaturesToTrack(image, eig_image, temp_image, 25, 0.01, 5.0, mask, 3, 0, 0.04) 

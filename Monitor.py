@@ -120,13 +120,13 @@ if __name__=="__main__":
 ##    m=Monitor(n.memoryProxy,['Device/SubDeviceList/HeadYaw/Position/Actuator/Value',
 ##                             'Device/SubDeviceList/HeadYaw/Position/Sensor/Value'])
     print "Start monitoring left/right hand touch."
-    #n.sensorsProxy.run()
+
     #m.start(interval=0.2, duration=30)
 
     dur=30
     mythread=m.start(interval=0.2, duration=dur, use_thread=True)
-    time.sleep(dur)
-    print m.data
+    mythread.join() # time.sleep(dur) werkt ook
+    print m.data 
 
     plt.plot(m.times,m.data)
     plt.legend(['LBack' ,'RBack', 'LLeft','RLeft', 'LRight','RRight'])

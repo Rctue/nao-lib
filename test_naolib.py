@@ -1,4 +1,4 @@
-import nao_nocv_2_1 as nao
+import nao_2_1_1 as nao
 import time
 
 
@@ -151,6 +151,12 @@ def testspeech(maxcount=50):
         count=count+1
     nao.asr.unsubscribe("MyModule")
 
+def testsensors():
+    print "sonar values: ", nao.ReadSonar()
+    print "gyro values: ", nao.GetGyro()
+    print "acceleration values: ", nao.GetAccel()
+    print "torso angle: ", nao.GetTorsoAngle()
+    print "foot sensor values: ", nao.GetFootSensors()
     
     
 if __name__=="__main__":
@@ -164,12 +170,12 @@ if __name__=="__main__":
     nao.InitProxy(ip,[0],port)
 #    result=testwalking()
 #    result=testsonar(5)
-#    result=testcamera()
-    result=testplayer()
+    result=testcamera()
+#    result=testplayer()
 #    result=testsound(50)
 #    result=testsoundlocalization(50)
 #    result=testleds()
-    #result=testgestures()
+#    result=testgestures()
 #    result=testspeech()
-    
+    result=testsensors()    
     
