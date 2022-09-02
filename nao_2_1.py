@@ -76,6 +76,12 @@ __nao_lib_version__='2.1'
 __naoqi_version__='2.1'
 __nao_module_name__ ="Nao Library"
 
+ALModuleList = ["ALTextToSpeech", "ALAudioDevice", "ALMotion", "ALMemory", "ALFaceDetection", "ALVideoDevice", "ALLeds",
+                "ALFaceTracker", "ALSpeechRecognition", "ALAudioPlayer", "ALVideoRecorder", "ALSonar", "ALRobotPosture",
+                "ALLandMarkDetection", "ALTracker", "ALSoundDetection", "ALSoundLocalization"]
+proxyDict = {}
+proxyDict = proxyDict.fromkeys(ALModuleList, None)
+
 gftt_list = list() # initialize good features to track for opencv
 fast = 0 # initiliaze face detection state for opencv
 time_q = deque([1,1,1,1,1,1,1,1,1,1])
@@ -91,14 +97,17 @@ for i in range (0,len(list_path)):
    
 cascade_front = cv.Load(list_path[i]+"/haarcascade_frontalface_alt2.xml")
 
+# defaults for Tracker
 interpol_time=0.3
 start_mov_t = time()
-weights = list()
-existence = list()
-id_pose = None
-alface_subscribed = False
 xtargetold = 0
 ytargetold = 0
+
+weights = list()
+existence = list()
+
+id_pose = None
+alface_subscribed = False
 
 class ResolutionCamera:
     def __init__(self):
@@ -179,8 +188,7 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     
     global ALModuleList
     global proxyDict
-    
-    ALModuleList=["ALTextToSpeech","ALAudioDevice","ALMotion","ALMemory","ALFaceDetection","ALVideoDevice","ALLeds","ALFaceTracker","ALSpeechRecognition","ALAudioPlayer","ALVideoRecorder","ALSonar","ALRobotPosture","ALLandMarkDetection","ALTracker","ALSoundDetection","ALAudioSourceLocalization"]
+
     proxyDict={}
     proxyDict=proxyDict.fromkeys(ALModuleList,None)
     #proxyList=[None]*(len(ALModuleList))
@@ -213,7 +221,7 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     postureProxy=proxyDict["ALRobotPosture"]
     landmarkProxy=proxyDict["ALLandMarkDetection"]
     soundProxy=proxyDict["ALSoundDetection"]
-    soundLocalizationProxy=proxyDict["ALAudioSourceLocalization"]
+    soundLocalizationProxy=proxyDict["ALSoundLocalization"]
     trackerProxy=proxyDict["ALTracker"]
 
 def InitSonar(flag=True):
@@ -252,11 +260,12 @@ def CloseProxy(proxy=[0]):
 
     for i in proxy:
         try:
-            proxyDict[ALModuleList[i-1]].exit()
+            proxyDict[ALModuleList[i-1]] = None
+            #proxyDict[ALModuleList[i-1]].exit() # removes the module from the broker, which is not what you want
             sleep(0.1)
             #print "Proxy ALTextToSpeech established"
         except RuntimeError as e:
-            print "Error when deleting ", ALModuleList[i-1], " TextToSpeech proxy:"
+            print "Error when deleting ", ALModuleList[i - 1], " proxy: ", proxyDict[ALModuleList[i - 1]]
             print str(e)
 
     #redefine globals (one or more are set to None)
@@ -274,7 +283,10 @@ def CloseProxy(proxy=[0]):
     videoProxy=proxyDict["ALVideoRecorder"]
     sonarProxy=proxyDict["ALSonar"]
     postureProxy=proxyDict["ALRobotPosture"]
-    landmarkProxy=proxyDict["ALLandMarkDetection"] 
+    landmarkProxy=proxyDict["ALLandMarkDetection"]
+    soundProxy=proxyDict["ALSoundDetection"]
+    soundLocalizationProxy=proxyDict["ALSoundLocalization"]
+    trackerProxy=proxyDict["ALTracker"]
      
 ################################################################################
 ## nao.ALFacePosition() subscribes to faceProxy and returns location of face.
@@ -1389,15 +1401,28 @@ def GetMusicVolume():
 ## This will record a file located in the /home/nao/naoqi/share/naoqi/vision
 ## Directory on Nao
 ###############################################################################
-def Record(file_name, fps = 3.0, resolution = 0):
+def Record(file_name, fps = 10.0, resolution = 0):
     """
-    file_name without extension. fps, should be higher than 3.0.
-    resolution shoud be between 0 and 2.
-    Saved in /home/nao/naoqi/share/naoqi/vision
+    file_name without extension.
+    fps - New frame rate between 1 and 30 (with a maximum of 15 FPS in VGA resolution).
+    resolution shoud be either 0 (QQVGA), 1 (QVGA) or 2 (VGA).
+    Saved in /home/nao/recordings/cameras"
     """
-    vidp.startVideoRecord_adv(file_name,fps,"MJPG",resolution,-1)
+    camera_id = 0 # top camera
+    videoProxy.setCameraID(camera_id)
+    file_path = '/home/nao/recordings/cameras'
+    # color space - It can be either kBGRColorSpace=13 (color) or kYuvColorSpace=0 (gray scale).
+    #videoProxy.setColorSpace(13) #default
+    videoProxy.setVideoFormat("MJPG")
+    videoProxy.setFrameRate(fps)
+    videoProxy.setResolution(resolution)
+    videoProxy.startRecording(file_path, file_name)
+    print "Video recording started."
 
-    
+def StopRecord():
+    videoInfo = videoProxy.stopRecording()
+    print "Video was saved on the robot: ", videoInfo[1]
+    print "Total number of frames: ", videoInfo[0]
 
 ###############################################################################
 ## This function will look for a face. If it doesn't find it False is returned.
