@@ -72,7 +72,7 @@ laser_left = [device.replace("Front","Left") for device in laser_front]
 laser_right = [device.replace("Front","Right") for device in laser_front]
 #print laser_right[0]
 
-def get_sensor_data(sensor_list, header = '', max_count = 10, verbose = True):
+def get_sensor_data(sensor_list, header = '', max_count = 3, verbose = True):
 
     count=0
     if verbose: print header
@@ -89,33 +89,58 @@ def get_sensor_data(sensor_list, header = '', max_count = 10, verbose = True):
         count+=1
     return data
 
-def get_laser_scan(count=1):
+def get_laser_scan(count=5):
     laser = laser_front + laser_left + laser_right
 
     data = get_sensor_data(laser, max_count=count, verbose=False)
+##    data = [[7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
+##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
+##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
+##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
+##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
+##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
+##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
+##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
+##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
+##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5]]
+##    
+    xdata=[]
+    ydata=[]
+    for dd in data:
+        xdata = xdata + dd[0::2]
+        ydata = ydata + dd[1::2]
 
-    xdata=np.array(data[0::2])
-    ydata=np.array(data[1::2])
-
-    scan_data=[np.sqrt(xdata**2+ydata**2),np.arctan2(xdata,ydata)]
-
+    scan_data=np.transpose([np.sqrt(np.array(xdata)**2+np.array(ydata)**2),np.arctan2(ydata,xdata)])
+##    scan_data=[[7.82623792 7.82623792 7.82623792 7.82623792 7.82623792 7.82623792
+##  7.82623792 7.82623792 7.82623792 7.82623792 7.82623792 7.82623792
+##  7.82623792 7.82623792 7.82623792]
+## [2.03444394 2.03444394 2.03444394 2.03444394 2.03444394 2.03444394
+##  2.03444394 2.03444394 2.03444394 2.03444394 2.03444394 2.03444394
+##  2.03444394 2.03444394 2.03444394]]
     return scan_data
 
 def get_mimic_sonar(left_range, right_range):
+    max_distance = 10 # meters, max range for pepper seems to be 7.82623792 m
     scan_data = get_laser_scan()
     left =  [dat[0] for dat in scan_data if dat[1]>=left_range[0]  and dat[1]<=left_range[1]]
     right = [dat[0] for dat in scan_data if dat[1]>=right_range[0] and dat[1]<=right_range[1]]
 
-    left_sonar = np.min(left)
-    right_sonar = np.min(right)
+    if len(left)>0:
+        left_sonar = np.min(left)
+    else:
+        left_sonar = max_distance
+    if len(right)>0:
+        right_sonar = np.min(right)
+    else:
+        right_sonar = max_distance
 
     return [left_sonar, right_sonar]
 
 if __name__=="__main__":    
-    #pepper_ip = "192.168.0.119"
-    #pepper_port = 9559
-    pepper_ip = "127.0.0.1"
-    pepper_port = 52587
+    pepper_ip = "192.168.0.119"
+    pepper_port = 9559
+    #pepper_ip = "127.0.0.1"
+    #pepper_port = 52587
     
     # create proxy on ALMemory
     memProxy = ALProxy("ALMemory",pepper_ip,pepper_port)
@@ -125,24 +150,25 @@ if __name__=="__main__":
     print data
 
     print "\nget laser scan"
-    print get_laser_scan()
+    scan=get_laser_scan()
+    print np.transpose(scan)
     
     print "\nmimic sonar:"
-    print get_mimic_sonar()
+    print get_mimic_sonar([-3,0],[0,3])
 
     import matplotlib as mpl
     import matplotlib.pyplot as plt
 
-    plt.ion()
-    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-    
-    not_done=True
-    while not_done:
-        data = get_laser_scan()
-        ax.plot(data[0],data[1],'ro')
-
-    plt.ioff()
-    plt.close('all')
+##    plt.ion()
+##    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+##    
+##    not_done=True
+##    while not_done:
+##        data = get_laser_scan()
+##        ax.plot(data[0],data[1],'ro')
+##
+##    plt.ioff()
+##    plt.close('all')
         
 
 
