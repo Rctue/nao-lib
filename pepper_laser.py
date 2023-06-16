@@ -26,7 +26,7 @@ laser_shovel = ['Device/SubDeviceList/Platform/LaserSensor/Front/Shovel/Seg01/X/
     , 'Device/SubDeviceList/Platform/LaserSensor/Front/Shovel/Seg03/X/Sensor/Value'
     , 'Device/SubDeviceList/Platform/LaserSensor/Front/Shovel/Seg03/Y/Sensor/Value']
     
-laser_vertical = ['Device/SubDeviceList/Platform/LaserSensor/Front/Vertical/Right/Seg01/X/Sensor/Value	Distances'
+laser_vertical = ['Device/SubDeviceList/Platform/LaserSensor/Front/Vertical/Right/Seg01/X/Sensor/Value'
     , 'Device/SubDeviceList/Platform/LaserSensor/Front/Vertical/Right/Seg01/Y/Sensor/Value'
     , 'Device/SubDeviceList/Platform/LaserSensor/Front/Vertical/Left/Seg01/X/Sensor/Value'
     , 'Device/SubDeviceList/Platform/LaserSensor/Front/Vertical/Left/Seg01/Y/Sensor/Value']
@@ -78,21 +78,13 @@ def get_sensor_data(sensor_list, header = '', max_count = 3, verbose = True):
     if verbose: print header
     data=[]
     while count < max_count:
-        values=[]
-        for sensor in laser_shovel:
-            #get data. Val can be int, float, list, string
-            val = memProxy.getData(sensor)
-            values.append(val)
-            if verbose: print val,
-        if verbose: print '\n'
-        data.append(values)
+        values=memProxy.getListData(sensor_list)
+        if verbose: print values
+        data = data + values
         count+=1
     return data
 
-def get_laser_scan(count=5):
-    laser = laser_front + laser_left + laser_right
-
-    data = get_sensor_data(laser, max_count=count, verbose=False)
+def get_laser_scan(count=1):
 ##    data = [[7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
 ##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
 ##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
@@ -104,11 +96,21 @@ def get_laser_scan(count=5):
 ##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
 ##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5]]
 ##    
+    data_front = get_sensor_data(laser_front, max_count=count, verbose=False)
+    data_left = get_sensor_data(laser_left, max_count=count, verbose=False)
+    data_right = get_sensor_data(laser_right, max_count=count, verbose=False)
+
     xdata=[]
     ydata=[]
-    for dd in data:
+    for dd in data_front:
         xdata = xdata + dd[0::2]
         ydata = ydata + dd[1::2]
+    for dd in data_left:
+        ydata = ydata + dd[0::2]
+        xdata = xdata + -1*dd[1::2]
+    for dd in data_right:
+        ydata = ydata + -1*dd[0::2]
+        xdata = xdata + dd[1::2]
 
     scan_data=np.transpose([np.sqrt(np.array(xdata)**2+np.array(ydata)**2),np.arctan2(ydata,xdata)])
 ##    scan_data=[[7.82623792 7.82623792 7.82623792 7.82623792 7.82623792 7.82623792
@@ -159,17 +161,21 @@ if __name__=="__main__":
     import matplotlib as mpl
     import matplotlib.pyplot as plt
 
-##    plt.ion()
+##    #plt.ion()
 ##    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
 ##    
 ##    not_done=True
 ##    while not_done:
 ##        data = get_laser_scan()
 ##        ax.plot(data[0],data[1],'ro')
+##        plt.show()
+##        s=raw_input("press q to quit")
+##        if s=='q':
+##            not_done = False
 ##
-##    plt.ioff()
+##    #plt.ioff()
 ##    plt.close('all')
-        
-
-
-
+##        
+##
+##
+##
