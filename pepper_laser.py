@@ -78,45 +78,52 @@ def get_sensor_data(sensor_list, header = '', max_count = 3, verbose = True):
     if verbose: print header
     data=[]
     while count < max_count:
-        values=[]
-        for sensor in laser_shovel:
-            #get data. Val can be int, float, list, string
-            val = memProxy.getData(sensor)
-            values.append(val)
-            if verbose: print val,
-        if verbose: print '\n'
+##        values=[]
+##        for sensor in sensor_list:
+##            #get data. Val can be int, float, list, string
+##            val = memProxy.getData(sensor)
+##            values.append(val)
+##            if verbose: print val,
+        values = memProxy.getListData(sensor_list)
+        if verbose: print values, '\n'
         data.append(values)
         count+=1
     return data
 
-def get_laser_scan(count=5):
-    laser = laser_front + laser_left + laser_right
+def get_laser_scan(count=1):
 
-    data = get_sensor_data(laser, max_count=count, verbose=False)
-##    data = [[7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
-##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
-##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
-##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
-##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
-##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
-##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
-##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
-##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
-##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5]]
-##    
-    xdata=[]
-    ydata=[]
-    for dd in data:
-        xdata = xdata + dd[0::2]
-        ydata = ydata + dd[1::2]
+    data_front = get_sensor_data(laser_front, max_count=count, verbose=False)
+    data_left = get_sensor_data(laser_left, max_count=count, verbose=False)
+    data_right = get_sensor_data(laser_right, max_count=count, verbose=False)
+
+    xdata=[item for sublist in data_front for item in sublist[0::2]]
+    ydata=[item for sublist in data_front for item in sublist[1::2]]
+    # laser left  x -> y, y -> -x
+    ydata_left=[item for sublist in data_left for item in sublist[0::2]]
+    xdata_left=[-item for sublist in data_left for item in sublist[1::2]]
+    # laser right x -> -y, y -> x
+    ydata_right=[-item for sublist in data_right for item in sublist[0::2]]
+    xdata_right=[item for sublist in data_right for item in sublist[1::2]]
+
+    xdata.extend(xdata_left).extend(xdata_right)
+    ydata.extend(ydata_left).extend(ydata_right)
 
     scan_data=np.transpose([np.sqrt(np.array(xdata)**2+np.array(ydata)**2),np.arctan2(ydata,xdata)])
-##    scan_data=[[7.82623792 7.82623792 7.82623792 7.82623792 7.82623792 7.82623792
-##  7.82623792 7.82623792 7.82623792 7.82623792 7.82623792 7.82623792
-##  7.82623792 7.82623792 7.82623792]
-## [2.03444394 2.03444394 2.03444394 2.03444394 2.03444394 2.03444394
-##  2.03444394 2.03444394 2.03444394 2.03444394 2.03444394 2.03444394
-##  2.03444394 2.03444394 2.03444394]]
+## scan_data = array([[ 6.99999972,  0.36611194],
+##       [ 1.30647387,  0.30727251],
+##       [ 1.3064738 ,  0.24843306],
+##       [ 1.38812542,  0.18959369],
+##       [ 1.43281302,  0.13075424],
+##       [ 1.48041321,  0.07191486],
+##       [ 1.53122199,  0.01307542],
+##       [ 1.58557758, -0.04576398],
+##       [ 1.77410024, -0.10460338],
+##       [ 1.77410026, -0.16344284],
+##       [ 3.36310632, -0.22228225],
+##       [ 1.92641468, -0.28112164],
+##       [ 1.84715909, -0.33996104],
+##       [ 6.99999994, -0.39880044],
+##       [ 1.48041322, -0.45763987]])
     return scan_data
 
 def get_mimic_sonar(left_range, right_range):
@@ -165,7 +172,7 @@ if __name__=="__main__":
 ##    not_done=True
 ##    while not_done:
 ##        data = get_laser_scan()
-##        ax.plot(data[0],data[1],'ro')
+##        ax.plot(data[1],data[0],'ro')
 ##
 ##    plt.ioff()
 ##    plt.close('all')
