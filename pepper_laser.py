@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 from naoqi import ALProxy
 import numpy as np
+import matplotlib as mpl
+mpl.use('TkAgg')
+import matplotlib.pyplot as plt
+
 
 # x is forward in m     wx/AngleX is rotation about x axis with positive meaning elevated left (y-axis)
 # y is left             wy/AngleY is rotation about y axis with positive meaning x axis down
@@ -113,7 +117,7 @@ def get_laser_scan(count=1):
         ydata = ydata + -1*dd[0::2]
         xdata = xdata + dd[1::2]
 
-    scan_data=np.transpose([np.sqrt(np.array(xdata)**2+np.array(ydata)**2),np.arctan2(ydata,xdata)])
+    scan_data=[np.sqrt(np.array(xdata)**2+np.array(ydata)**2),np.arctan2(ydata,xdata)]
 ##    scan_data=[[7.82623792 7.82623792 7.82623792 7.82623792 7.82623792 7.82623792
 ##  7.82623792 7.82623792 7.82623792 7.82623792 7.82623792 7.82623792
 ##  7.82623792 7.82623792 7.82623792]
@@ -140,7 +144,7 @@ def get_mimic_sonar(left_range, right_range):
     return [left_sonar, right_sonar]
 
 if __name__=="__main__":    
-    pepper_ip = "192.168.0.106"
+    pepper_ip = "192.168.0.116"
     pepper_port = 9559
     #pepper_ip = "127.0.0.1"
     #pepper_port = 52587
@@ -154,29 +158,27 @@ if __name__=="__main__":
 
     print "\nget laser scan"
     scan=get_laser_scan()
-    print np.transpose(scan)
+    print scan
     
     print "\nmimic sonar:"
     print get_mimic_sonar([-3,0],[0,3])
 
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-
-    #plt.ion()
+    plt.ion()
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
     
     count=0
-    while count<10:
+    while count<1000:
         data = get_laser_scan()
-        ax.plot(data[0],data[1],'ro')
+        ax.plot(data[1],data[0],'r-o') # first column [0] is distance and second column [1] is angle
         plt.draw()
-        #plt.pause(1)
-        plt.waitforbuttonpress(0)
+        plt.pause(0.1) 
         count+=1
 
-    #plt.ioff()
+    
+    #plt.waitforbuttonpress(0)
+    plt.ioff()
     plt.show() #needed to catch close window as plt.close does not work
-    #plt.close('all')
+ 
         
 
 
