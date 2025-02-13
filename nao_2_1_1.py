@@ -57,12 +57,12 @@
         # 1.42: Added GetGyro, GetAccel, GetTorsoAngle, and GetFootSensors
 ## 2.1 updated DetectFace and ALFacePostion to pass faceinfo as fourth and third argument respectively
         
-import cv
+#import cv
 from time import time
 from time import sleep
 #import Image
 import random
-import math
+#import math
 import sys
 import os
 import csv
@@ -76,16 +76,9 @@ __nao_lib_version__='2.1'
 __naoqi_version__='2.1'
 __nao_module_name__ ="Nao Library"
 
-ALModuleList = ["ALTextToSpeech", "ALAudioDevice", "ALMotion", "ALMemory", "ALFaceDetection", "ALVideoDevice", "ALLeds",
-                "ALFaceTracker", "ALSpeechRecognition", "ALAudioPlayer", "ALVideoRecorder", "ALSonar", "ALRobotPosture",
-                "ALLandMarkDetection", "ALTracker", "ALSoundDetection", "ALSoundLocalization"]
-proxyDict = {}
-proxyDict = proxyDict.fromkeys(ALModuleList, None)
-
 time_old_track = time()
 
 # defaults for Tracker
-interpol_time=0.3
 start_mov_t = time()
 xtargetold = 0
 ytargetold = 0
@@ -150,7 +143,8 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     
     global ALModuleList
     global proxyDict
-
+    
+    ALModuleList=["ALTextToSpeech","ALAudioDevice","ALMotion","ALMemory","ALFaceDetection","ALVideoDevice","ALLeds","ALFaceTracker","ALSpeechRecognition","ALAudioPlayer","ALVideoRecorder","ALSonar","ALRobotPosture","ALLandMarkDetection","ALTracker","ALSoundDetection","ALAudioSourceLocalization"]
     proxyDict={}
     proxyDict=proxyDict.fromkeys(ALModuleList,None)
     #proxyList=[None]*(len(ALModuleList))
@@ -183,7 +177,7 @@ def InitProxy(IP="marvin.local", proxy=[0], PORT = 9559):
     postureProxy=proxyDict["ALRobotPosture"]
     landmarkProxy=proxyDict["ALLandMarkDetection"]
     soundProxy=proxyDict["ALSoundDetection"]
-    soundLocalizationProxy=proxyDict["ALSoundLocalization"]
+    soundLocalizationProxy=proxyDict["ALAudioSourceLocalization"]
     trackerProxy=proxyDict["ALTracker"]
 
 def InitSonar(flag=True):
@@ -222,12 +216,11 @@ def CloseProxy(proxy=[0]):
 
     for i in proxy:
         try:
-            proxyDict[ALModuleList[i-1]] = None
-            #proxyDict[ALModuleList[i-1]].exit() # removes the module from the broker, which is not what you want
+            proxyDict[ALModuleList[i-1]].exit()
             sleep(0.1)
             #print "Proxy ALTextToSpeech established"
         except RuntimeError as e:
-            print "Error when deleting ", ALModuleList[i - 1], " proxy: ", proxyDict[ALModuleList[i - 1]]
+            print "Error when deleting ", ALModuleList[i-1], " TextToSpeech proxy:"
             print str(e)
 
     #redefine globals (one or more are set to None)
@@ -245,10 +238,7 @@ def CloseProxy(proxy=[0]):
     videoProxy=proxyDict["ALVideoRecorder"]
     sonarProxy=proxyDict["ALSonar"]
     postureProxy=proxyDict["ALRobotPosture"]
-    landmarkProxy=proxyDict["ALLandMarkDetection"]
-    soundProxy=proxyDict["ALSoundDetection"]
-    soundLocalizationProxy=proxyDict["ALSoundLocalization"]
-    trackerProxy=proxyDict["ALTracker"]
+    landmarkProxy=proxyDict["ALLandMarkDetection"] 
      
 ################################################################################
 ## nao.ALFacePosition() subscribes to faceProxy and returns location of face.
@@ -305,15 +295,15 @@ def EyeLED(color=[0,0,0],interpol_time = 0, POST=True):
 def GetAvailableGestures():
     """Returns available gestures in a list"""
     list_path = sys.path
-    found = 0
+    found = False
     for i in range (0,len(list_path)):
         if os.path.exists(list_path[i]+"/gestures"):
-            found = 1
+            found = True
             break
 
-    if found == 0:
+    if not found:
         print "Could not find /gestures directory!"
-        raise IOError
+        #raise IOError
         return None
 
     remove = []
@@ -346,7 +336,7 @@ def GetAvailableLEDPatterns():
 
     if found == 0:
         print "Could not find /led directory!"
-        raise IOError
+        #raise IOError
         return None
 
     list_led = os.listdir(list_path[i]+"/led")
@@ -379,7 +369,7 @@ def GetAvailableDialogs():
 
     if found == 0:
         print "Could not find /dialogs directory!"
-        raise IOError
+        #raise IOError
         return None
 
     list_dlg = os.listdir(list_path[i]+"/dialogs")
@@ -406,13 +396,13 @@ def GetAvailableDialogs():
 def LoadDialog(file_name):
     """ Give the filename of the dialog in the /dialogs folder. Extension should be .csv or .dlg."""
     list_path = sys.path
-    filefound=False
+    file_found=False
     for i in range (0,len(list_path)):
         if os.path.exists(list_path[i]+"/dialogs/"+file_name):
-            filefound=True
+            file_found=True
             break
 
-    if not filefound:
+    if not file_found:
         print "Dialog file "+str(file_name)+" not found in PYTHONPATH"
         return
 
@@ -488,8 +478,7 @@ def InitTrack():
     # Stiffening the head joints
     motionProxy.stiffnessInterpolation('HeadYaw', 1.0, 1.0)
     motionProxy.stiffnessInterpolation('HeadPitch', 1.0, 1.0)
-    interpol_time = 0.5
-    names  = ["HeadYaw","HeadPitch"]
+
 ################################################################################
 ## Releasing stiffness of the head joints
 ################################################################################
@@ -514,7 +503,6 @@ def Track(target_loc, detected, speed = 5, min_move = 0.04):
     global ytargetold
     global time_old_track
     global id_pose
-    global interpol_time
     global start_mov_t
 
     interpol_time = 1.0/speed
@@ -550,7 +538,7 @@ def Track(target_loc, detected, speed = 5, min_move = 0.04):
 
         try:
             id_pose = motionProxy.post.angleInterpolation(names, [-xtarget/2.5,ytarget/2.5] , interpol_time, False)
-        except RuntimeError,e:
+        except RuntimeError as e:
             print "Kan hoofd niet draaien"
         start_mov_t = time()
 
@@ -957,34 +945,34 @@ def GetMusicVolume():
 ## This will record a file located in the /home/nao/naoqi/share/naoqi/vision
 ## Directory on Nao
 ###############################################################################
-def Record(file_name, fps = 10.0, resolution = 0):
+def Record(file_name, fps = 10.0, resolution = 2):
     """
-    file_name without extension.
-    fps - New frame rate between 1 and 30 (with a maximum of 15 FPS in VGA resolution).
-    resolution shoud be either 0 (QQVGA), 1 (QVGA) or 2 (VGA).
-    Saved in /home/nao/recordings/cameras"
+    file_name without extension. fps, should be higher than 3.0.
+    resolution shoud be between 0 and 2.
+    Saved in /home/nao/recordings/cameras
     """
-    camera_id = 0 # top camera
-    videoProxy.setCameraID(camera_id)
-    file_path = '/home/nao/recordings/cameras'
-    # color space - It can be either kBGRColorSpace=13 (color) or kYuvColorSpace=0 (gray scale).
-    #videoProxy.setColorSpace(13) #default
-    videoProxy.setVideoFormat("MJPG")
+
     videoProxy.setFrameRate(fps)
-    videoProxy.setResolution(resolution)
-    videoProxy.startRecording(file_path, file_name)
-    print "Video recording started."
+    videoProxy.setResolution(resolution) # Set resolution to VGA (640 x 480)
+    # We'll save a 5 second video record in /home/nao/recordings/cameras/
+    videoProxy.startRecording("/home/nao/recordings/cameras", file_name)
+    print "Video record started."
 
 def StopRecord():
+
     videoInfo = videoProxy.stopRecording()
     print "Video was saved on the robot: ", videoInfo[1]
     print "Total number of frames: ", videoInfo[0]
+
+
+    
 
 ###############################################################################
 ## This function will look for a face. If it doesn't find it False is returned.
 ###############################################################################
 def FindFace(gain=1.0, offset=[0.0, -0.2]):
     """ It looks for a face and if it finds it returns boolean True """
+
     location, detected = ALFacePosition()
     if detected:
         return True
@@ -1054,18 +1042,18 @@ def RunMovement(file_name, post = True, to_start_position = True):
     """ Give up the filename containing the movement. Needs motion proxy."""
 
     list_path = sys.path
-    filefound = False
+    file_found = False
     for i in range (0,len(list_path)):
         if os.path.exists(list_path[i]+"/gestures/"+file_name):
             file_name=list_path[i]+"/gestures/"+file_name
-            filefound=True
+            file_found=True
             break
         if os.path.exists(list_path[i]+"/"+file_name):
             file_name=list_path[i]+"/"+file_name
-            filefound=True
+            file_found=True
             break
 
-    if not filefound:
+    if not file_found:
         print "Movement or gesture "+str(file_name)+" not found in PYTHONPATH"
         return
 
@@ -1110,14 +1098,14 @@ def RunSpeech(file_name):
     for i in range (0,len(list_path)):
         if os.path.exists(list_path[i]+"/tts/"+file_name):
             file_name=list_path[i]+"/tts/"+file_name
-            filefound=True
+            file_found=True
             break
         if os.path.exists(list_path[i]+"/"+file_name):
             file_name=list_path[i]+"/"+file_name
-            filefound=True
+            file_found=True
             break
 
-    if not filefound:
+    if not file_found:
         print "Speech file "+str(file_name)+" not found in PYTHONPATH"
         return
 
@@ -1151,18 +1139,18 @@ def RunLED(file_name, post = True):
     """ Uses a led CSV file to read out the proper eye pattern variables."""
     #open CSV file
     list_path = sys.path
-    filefound=False
+    file_found=False
     for i in range (0,len(list_path)):
         if os.path.exists(list_path[i]+"/led/"+file_name):
             file_name=list_path[i]+"/led/"+file_name
-            filefound=True
+            file_found=True
             break
         if os.path.exists(list_path[i]+"/"+file_name):
             file_name=list_path[i]+"/"+file_name
-            filefound=True
+            file_found=True
             break
 
-    if not filefound:
+    if not file_found:
         print "LED file "+str(file_name)+" not found in PYTHONPATH"
         return
      
@@ -1215,15 +1203,15 @@ def RunLED(file_name, post = True):
 def GetAvailableModules():
     dir_file = []
     list_path = sys.path
-    filefound = False
+    file_found = False
     for i in range (0,len(list_path)):
         if os.path.exists(list_path[i]+"/modules"):
-            filefound = True
+            file_found = True
             break
 
-    if not filefound:
+    if not file_found:
         print "Could not find /modules directory!"
-        raise IOError
+        #raise IOError
         return None
 
     list_dir = os.listdir(list_path[i]+"/modules")

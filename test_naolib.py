@@ -1,27 +1,5 @@
-import nao_nocv_2_1 as nao
+import nao_2_1_1 as nao
 import time
-
-def testconnect(IP, PORT):
-    ALModuleList = ["ALTextToSpeech", "ALAudioDevice", "ALMotion", "ALMemory", "ALFaceDetection", "ALVideoDevice",
-                    "ALLeds", "ALFaceTracker", "ALSpeechRecognition", "ALAudioPlayer", "ALVideoRecorder", "ALSonar",
-                    "ALRobotPosture", "ALLandMarkDetection", "ALTracker", "ALSoundDetection",
-                    "ALSoundLocalization"]
-    proxyDict = {}
-    proxyDict = proxyDict.fromkeys(ALModuleList, None)
-    proxy = range(1, len(ALModuleList) + 1) #start counting from 1 as 0 has special meaning
-
-    print "Connecting proxies:"
-    for i in proxy:
-        proxyDict[ALModuleList[i - 1]] = nao.ConnectProxy(ALModuleList[i - 1], IP, PORT)
-
-    print ""
-    print "Waiting a while"
-    for key in proxyDict:
-        print key, " -> ", proxyDict[key]
-
-    nao.sleep(3)
-
-    nao.CloseProxy() # not really necessary only to keep track of proxies
 
 
 def testsonar(maxcount=10):
@@ -111,15 +89,10 @@ def testplayer(filename="mp3/Thriller.mp3"):
     nao.StopPlay()
     time.sleep(1)
     print "Start from position .."
-    nao.playFileFromPosition(filename, 20)
+    nao.playFileFromPosition(filename, 100)
     time.sleep(15)
     print "Stop."
     nao.StopPlay()
-
-def testvideorecorder(file_name = 'test_video'):
-    nao.Record(file_name)
-    time.sleep(5)
-    nao.StopRecord()
 
 def testwalking():
     print "Test basic walking ... ",
@@ -178,6 +151,12 @@ def testspeech(maxcount=50):
         count=count+1
     nao.asr.unsubscribe("MyModule")
 
+def testsensors():
+    print "sonar values: ", nao.ReadSonar()
+    print "gyro values: ", nao.GetGyro()
+    print "acceleration values: ", nao.GetAccel()
+    print "torso angle: ", nao.GetTorsoAngle()
+    print "foot sensor values: ", nao.GetFootSensors()
     
     
 if __name__=="__main__":
@@ -185,21 +164,18 @@ if __name__=="__main__":
 #    port=9559
 #    ip="127.0.0.1"
 #    port=50021
-    ip="192.168.178.186"
+    ip="192.168.0.112"
     port=9559
     
-    testconnect(ip, port)
-
     nao.InitProxy(ip,[0],port)
 #    result=testwalking()
 #    result=testsonar(5)
-#    result=testcamera()
+    result=testcamera()
 #    result=testplayer()
-    testvideorecorder()
 #    result=testsound(50)
 #    result=testsoundlocalization(50)
 #    result=testleds()
 #    result=testgestures()
-#    testspeech()
-    
+#    result=testspeech()
+    result=testsensors()    
     
