@@ -1,5 +1,5 @@
 # -*- coding: cp1252 -*-
-import nao_2_0 as nao
+import nao_nocv_2_1 as nao
 import cv2
 import random
 import numpy as np
@@ -27,13 +27,13 @@ def InitVideo(resolution=2, fps=10, color_space=13, camera_idx=0):
 ##    AL::kHsyColorSpace 	6 	1 	1 	Buffer only contains the H (Hue component) equivalent to one unsigned char
 ##    AL::khSyColorSpace 	7 	1 	1 	Buffer only contains the S (Saturation component) equivalent to one unsigned char
 ##    AL::khsYColorSpace 	8 	1 	1 	Buffer only contains the Y (Brightness component) equivalent to one unsigned char
-##    AL::kYUV422ColorSpace 	9 	2 	2 	Native format, 0xY’Y’VVYYUU equivalent to four unsigned char for two pixels. With Y luma for pixel n, Y’ luma for pixel n+1, and U and V are the average chrominance value of both pixels.
+##    AL::kYUV422ColorSpace 	9 	2 	2 	Native format, 0xYï¿½Yï¿½VVYYUU equivalent to four unsigned char for two pixels. With Y luma for pixel n, Yï¿½ luma for pixel n+1, and U and V are the average chrominance value of both pixels.
 ##    AL::kYUVColorSpace 	10 	3 	3 	Buffer contains triplet on the format 0xVVUUYY, equivalent to three unsigned char
 ##    AL::kRGBColorSpace 	11 	3 	3 	Buffer contains triplet on the format 0xBBGGRR, equivalent to three unsigned char
 ##    AL::kHSYColorSpace 	12 	3 	3 	Buffer contains triplet on the format 0xYYSSHH, equivalent to three unsigned char
 ##    AL::kBGRColorSpace 	13 	3 	3 	Buffer contains triplet on the format 0xRRGGBB, equivalent to three unsigned char
 ##    AL::kYYCbCrColorSpace 	14 	2 	2 	TIFF format, four unsigned characters for two pixels.
-##    AL::kH2RGBColorSpace 	15 	3 	3 	H from “HSY to RGB” in fake colors.
+##    AL::kH2RGBColorSpace 	15 	3 	3 	H from ï¿½HSY to RGBï¿½ in fake colors.
 ##    AL::kHSMixedColorSpace 	16 	3 	3 	HS and (H+S)/2.    
 
     try:

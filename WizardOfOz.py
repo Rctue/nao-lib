@@ -1,7 +1,7 @@
 import time
 from math import pi
 import msvcrt
-import nao_nocv_2_0 as nao
+import nao_nocv_2_1 as nao
 #import numpy as np
 
 # Set Nao IP Address
