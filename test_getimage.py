@@ -1,4 +1,4 @@
-import nao_2_0 as nao
+import nao_2_1 as nao
 
 nao.InitProxy("127.0.0.1",[0])
 nao.InitPose()

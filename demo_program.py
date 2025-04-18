@@ -1,4 +1,4 @@
-import nao_nocv as nao
+import nao_nocv_2_1 as nao
 
 IP='192.168.0.115'
 #IP='marvin.local' #use this for the real robot

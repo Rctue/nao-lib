@@ -1,4 +1,4 @@
-import nao_nocv_2_0 as nao
+import nao_nocv_2_1 as nao
 import time
 
 

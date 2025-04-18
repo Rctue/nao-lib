@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
-from naoqi import ALProxy
-import numpy as np
-import matplotlib as mpl
-mpl.use('TkAgg')
-import matplotlib.pyplot as plt
+dd1=[1.9264147281646729, 0.2890055477619171, 1.9264147281646729, -0.26799774169921875]
+dd2=[1.9264147281646729, 0.2890055477619171, 1.8471590280532837, -0.26799774169921875]
+dd3=[1.9264147281646729, 0.2890055477619171, 1.8471590280532837, -0.26799774169921875]
+ddd=[1.9264147281646729, 0.2890055477619171, 1.9264147281646729, -0.26799774169921875, 1.9264147281646729, 0.2890055477619171, 1.8471590280532837, -0.26799774169921875, 1.9264147281646729, 0.2890055477619171, 1.8471590280532837, -0.26799774169921875]
 
+import numpy as np
+import time
 
 # x is forward in m     wx/AngleX is rotation about x axis with positive meaning elevated left (y-axis)
 # y is left             wy/AngleY is rotation about y axis with positive meaning x axis down
@@ -74,7 +74,6 @@ laser_front = ['Device/SubDeviceList/Platform/LaserSensor/Front/Horizontal/Seg01
 
 laser_left = [device.replace("Front","Left") for device in laser_front]
 laser_right = [device.replace("Front","Right") for device in laser_front]
-#print laser_right[0]
 
 def get_sensor_data(sensor_list, header = '', max_count = 3, verbose = True):
 
@@ -82,7 +81,7 @@ def get_sensor_data(sensor_list, header = '', max_count = 3, verbose = True):
     if verbose: print header
     data=[]
     while count < max_count:
-        values=memProxy.getListData(sensor_list)
+        values=dd1
         if verbose: print values
         data.append(values)
         count+=1
@@ -107,7 +106,6 @@ def get_laser_scan(count=1):
     xdata=[]
     ydata=[]
     for dd in data_front:
-        print dd
         xdata = xdata + dd[0::2]
         ydata = ydata + dd[1::2]
     for dd in data_left:
@@ -117,7 +115,7 @@ def get_laser_scan(count=1):
         ydata = ydata + -1*dd[0::2]
         xdata = xdata + dd[1::2]
 
-    scan_data=[np.sqrt(np.array(xdata)**2+np.array(ydata)**2),np.arctan2(ydata,xdata)]
+    scan_data=np.transpose([np.sqrt(np.array(xdata)**2+np.array(ydata)**2),np.arctan2(ydata,xdata)])
 ##    scan_data=[[7.82623792 7.82623792 7.82623792 7.82623792 7.82623792 7.82623792
 ##  7.82623792 7.82623792 7.82623792 7.82623792 7.82623792 7.82623792
 ##  7.82623792 7.82623792 7.82623792]
@@ -144,42 +142,29 @@ def get_mimic_sonar(left_range, right_range):
     return [left_sonar, right_sonar]
 
 if __name__=="__main__":    
-    pepper_ip = "192.168.0.116"
-    pepper_port = 9559
-    #pepper_ip = "127.0.0.1"
-    #pepper_port = 52587
-    
-    # create proxy on ALMemory
-    memProxy = ALProxy("ALMemory",pepper_ip,pepper_port)
-
-    get_sensor_data(laser_shovel, "Shovel Seg01 X Y Seg02 X Y Seg03 X Y")
-    data = get_sensor_data(laser_vertical, "Vertical Right X Y Left X Y")
+    data =get_sensor_data(laser_shovel, "Shovel Seg01 X Y Seg02 X Y Seg03 X Y")
     print data
 
     print "\nget laser scan"
     scan=get_laser_scan()
-    print scan
+    print np.transpose(scan)
     
     print "\nmimic sonar:"
     print get_mimic_sonar([-3,0],[0,3])
+
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
 
     plt.ion()
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
     
     count=0
-    while count<1000:
+    while count<10:
         data = get_laser_scan()
-        ax.plot(data[1],data[0],'r-o') # first column [0] is distance and second column [1] is angle
-        plt.draw()
-        plt.pause(0.1) 
+        ax.plot(data[0],data[1],'ro')
+        plt.show()
+        time.sleep(1)
         count+=1
 
-    
-    #plt.waitforbuttonpress(0)
     plt.ioff()
-    plt.show() #needed to catch close window as plt.close does not work
- 
-        
-
-
-
+    plt.close('all')
