@@ -3,8 +3,12 @@ dd2=[1.9264147281646729, 0.2890055477619171, 1.8471590280532837, -0.267997741699
 dd3=[1.9264147281646729, 0.2890055477619171, 1.8471590280532837, -0.26799774169921875]
 ddd=[1.9264147281646729, 0.2890055477619171, 1.9264147281646729, -0.26799774169921875, 1.9264147281646729, 0.2890055477619171, 1.8471590280532837, -0.26799774169921875, 1.9264147281646729, 0.2890055477619171, 1.8471590280532837, -0.26799774169921875]
 
+from naoqi import ALProxy
 import numpy as np
 import time
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
 
 # x is forward in m     wx/AngleX is rotation about x axis with positive meaning elevated left (y-axis)
 # y is left             wy/AngleY is rotation about y axis with positive meaning x axis down
@@ -16,11 +20,11 @@ bumpers = ['Device/SubDeviceList/ChestBoard/Button/Sensor/Value'
     , 'Device/SubDeviceList/Platform/Back/Bumper/Sensor/Value']
 
 gyroscope = ['Device/SubDeviceList/InertialSensorBase/GyroscopeX/Sensor/Value' #	Gyroscope (rad/s)
-    , 'Device/SubDeviceList/InertialSensorBase/GyroscopeY/Sensor/Value'     # Gyroscope (rad/s)
+    , 'Device/SubDeviceList/InertialSensorBase/GyroscopeY/Sensor/Value' # Gyroscope (rad/s)
     , 'Device/SubDeviceList/InertialSensorBase/GyroscopeZ/Sensor/Value']
 
-accelerometer = ['Device/SubDeviceList/InertialSensorBase/AccelerometerX/Sensor/Value' #	Accelerometer (m/s²)
-    , 'Device/SubDeviceList/InertialSensorBase/AccelerometerY/Sensor/Value' #	Accelerometer (m/s²)
+accelerometer = ['Device/SubDeviceList/InertialSensorBase/AccelerometerX/Sensor/Value' #	Accelerometer (m/s^2)
+    , 'Device/SubDeviceList/InertialSensorBase/AccelerometerY/Sensor/Value' #	Accelerometer (m/s^2)
     , 'Device/SubDeviceList/InertialSensorBase/AccelerometerZ/Sensor/Value']
 
 laser_shovel = ['Device/SubDeviceList/Platform/LaserSensor/Front/Shovel/Seg01/X/Sensor/Value'	
@@ -75,19 +79,15 @@ laser_front = ['Device/SubDeviceList/Platform/LaserSensor/Front/Horizontal/Seg01
 laser_left = [device.replace("Front","Left") for device in laser_front]
 laser_right = [device.replace("Front","Right") for device in laser_front]
 
-def get_sensor_data(sensor_list, header = '', max_count = 3, verbose = True):
+def get_sensor_data(sensor_list, verbose = True):
 
-    count=0
-    if verbose: print header
-    data=[]
-    while count < max_count:
-        values=dd1
-        if verbose: print values
-        data.append(values)
-        count+=1
-    return data
+    values=dd1 #memProxy.getListData(sensor_list)
+    if verbose: 
+        print(values)
 
-def get_laser_scan(count=1):
+    return np.array(values)
+
+def get_laser_scan(polar=True):
 ##    data = [[7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
 ##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
 ##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
@@ -99,23 +99,24 @@ def get_laser_scan(count=1):
 ##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5],
 ##            [7.0, -3.5, 7.0, -3.5, 7.0, -3.5]]
 ##    
-    data_front = get_sensor_data(laser_front, max_count=count, verbose=False)
-    data_left = get_sensor_data(laser_left, max_count=count, verbose=False)
-    data_right = get_sensor_data(laser_right, max_count=count, verbose=False)
+    data_front = get_sensor_data(laser_front, verbose=False)
+    data_left = get_sensor_data(laser_left,  verbose=False)
+    data_right = get_sensor_data(laser_right, verbose=False)
 
-    xdata=[]
-    ydata=[]
-    for dd in data_front:
-        xdata = xdata + dd[0::2]
-        ydata = ydata + dd[1::2]
-    for dd in data_left:
-        ydata = ydata + dd[0::2]
-        xdata = xdata + -1*dd[1::2]
-    for dd in data_right:
-        ydata = ydata + -1*dd[0::2]
-        xdata = xdata + dd[1::2]
-
-    scan_data=np.transpose([np.sqrt(np.array(xdata)**2+np.array(ydata)**2),np.arctan2(ydata,xdata)])
+    x_front = data_front[0::2]
+    y_front = data_front[1::2]
+    y_left = data_left[0::2]
+    x_left = data_left[1::2]*(-1.0)
+    y_right = data_right[0::2]*(-1.0)
+    x_right = data_right[1::2]
+    
+    xdata = np.concatenate((x_front, x_left, x_right))
+    ydata = np.concatenate((y_front, y_left, y_right))
+    
+    if polar:
+        scan_data=np.stack((np.arctan2(ydata,xdata), np.sqrt((xdata)**2 + (ydata)**2)))
+    else:
+        scan_data = np.stack((xdata, ydata))
 ##    scan_data=[[7.82623792 7.82623792 7.82623792 7.82623792 7.82623792 7.82623792
 ##  7.82623792 7.82623792 7.82623792 7.82623792 7.82623792 7.82623792
 ##  7.82623792 7.82623792 7.82623792]
@@ -142,29 +143,37 @@ def get_mimic_sonar(left_range, right_range):
     return [left_sonar, right_sonar]
 
 if __name__=="__main__":    
-    data =get_sensor_data(laser_shovel, "Shovel Seg01 X Y Seg02 X Y Seg03 X Y")
-    print data
-
-    print "\nget laser scan"
-    scan=get_laser_scan()
-    print np.transpose(scan)
+    pepper_ip = "192.168.0.116"
+    pepper_port = 9559
+    #pepper_ip = "127.0.0.1"
+    #pepper_port = 52587
     
-    print "\nmimic sonar:"
-    print get_mimic_sonar([-3,0],[0,3])
+    # create proxy on ALMemory
+    memProxy = ALProxy("ALMemory",pepper_ip,pepper_port)
+    
+    data =get_sensor_data(laser_shovel, "Shovel Seg01 X Y Seg02 X Y Seg03 X Y")
+    print(data)
 
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
+    print("\nget laser scan")
+    scan=get_laser_scan()
+    print(np.transpose(scan))
+    
+    print("\nmimic sonar:")
+    print(get_mimic_sonar([-3,0],[0,3]))
 
     plt.ion()
-    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    polar = False
+    if polar:
+        fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    else:
+        fig, ax = plt.subplots()
     
     count=0
     while count<10:
-        data = get_laser_scan()
-        ax.plot(data[0],data[1],'ro')
-        plt.show()
-        time.sleep(1)
+        data = get_laser_scan(polar)
+        ax.plot(data[0,:],data[1,:],'ro')
+        plt.draw()
+        plt.pause(1) 
         count+=1
-
     plt.ioff()
     plt.close('all')
