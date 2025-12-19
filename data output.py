@@ -20,11 +20,16 @@ fig,ax = plt.subplots(1,3)
 data_x = np.array(data_laser_horizontal_front[0::2])
 data_y = np.array(data_laser_horizontal_front[1::2])
 ax[0].plot(data_x, data_y,'ro-')
+ax[0].set_xlabel('X (m)')
+ax[0].set_ylabel('Y (m)')
+
 
 angles = np.arctan2(data_y, data_x)
 distances = np.sqrt(data_x**2 + data_y**2)
 #fig2, ax2 = plt.subplots()#subplot_kw={'projection': 'polar'})
-ax[1].plot(angles, distances,'bo-')
+ax[1].plot(angles/np.pi*180.0, distances,'bo-')
+ax[1].set_xlabel('Angle (degrees)')
+ax[1].set_ylabel('Distance (m)')
 
 #fig3, ax3 = plt.subplots(subplot_kw={'projection': 'polar'})
 ax[2]=plt.subplot(1,3,3,projection='polar')
