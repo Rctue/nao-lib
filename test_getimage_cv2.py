@@ -1,12 +1,13 @@
-# -*- coding: cp1252 -*-
-import nao_nocv_2_1 as nao
 import cv2
 import random
 import numpy as np
 import time
 
 video_subscriber_ID="python_GVM2"+str(time.time())
-use_simulation = False
+use_simulation = True
+if not use_simulation:
+    import nao_nocv_2_1 as nao
+
 resolutionar = [160,120],[320,240],[640,480],[1280,960]
 
 def InitVideo(resolution=2, fps=10, color_space=13, camera_idx=0):
@@ -29,13 +30,13 @@ def InitVideo(resolution=2, fps=10, color_space=13, camera_idx=0):
 ##    AL::kHsyColorSpace 	6 	1 	1 	Buffer only contains the H (Hue component) equivalent to one unsigned char
 ##    AL::khSyColorSpace 	7 	1 	1 	Buffer only contains the S (Saturation component) equivalent to one unsigned char
 ##    AL::khsYColorSpace 	8 	1 	1 	Buffer only contains the Y (Brightness component) equivalent to one unsigned char
-##    AL::kYUV422ColorSpace 	9 	2 	2 	Native format, 0xY�Y�VVYYUU equivalent to four unsigned char for two pixels. With Y luma for pixel n, Y� luma for pixel n+1, and U and V are the average chrominance value of both pixels.
+##    AL::kYUV422ColorSpace 	9 	2 	2 	Native format, 0xYYVVYYUU equivalent to four unsigned char for two pixels. With Y luma for pixel n, Y luma for pixel n+1, and U and V are the average chrominance value of both pixels.
 ##    AL::kYUVColorSpace 	10 	3 	3 	Buffer contains triplet on the format 0xVVUUYY, equivalent to three unsigned char
 ##    AL::kRGBColorSpace 	11 	3 	3 	Buffer contains triplet on the format 0xBBGGRR, equivalent to three unsigned char
 ##    AL::kHSYColorSpace 	12 	3 	3 	Buffer contains triplet on the format 0xYYSSHH, equivalent to three unsigned char
 ##    AL::kBGRColorSpace 	13 	3 	3 	Buffer contains triplet on the format 0xRRGGBB, equivalent to three unsigned char
 ##    AL::kYYCbCrColorSpace 	14 	2 	2 	TIFF format, four unsigned characters for two pixels.
-##    AL::kH2RGBColorSpace 	15 	3 	3 	H from �HSY to RGB� in fake colors.
+##    AL::kH2RGBColorSpace 	15 	3 	3 	H from HSY to RGB in fake colors.
 ##    AL::kHSMixedColorSpace 	16 	3 	3 	HS and (H+S)/2.    
 
     try:
@@ -91,7 +92,7 @@ eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml
 # font
 font = cv2.FONT_HERSHEY_SIMPLEX
 font_origin = (50, 50)
-font_scale = 1
+font_scale = 0.7
 font_color = (255, 0, 0)
 font_thickness = 1
  
@@ -99,8 +100,9 @@ def face_detect(img):
     global face_cascade, eye_cascade
 
     # convert to gray scale of each frames
-    print(img.shape)
-    if img.shape[2]==1:
+    if len(img.shape)==2:
+        gray=img
+    elif img.shape[2]==1:
         gray = img
     elif img.shape[2]==3:
         #print("converting image to gray")
@@ -141,7 +143,11 @@ def face_detect(img):
 if __name__=="__main__":
     if use_simulation:
         # capture frames from a camera
-        cap = cv2.VideoCapture(0) # 0 for windows, 1 for mac
+        import platform
+        if platform.system()=="Darwin":
+            cap = cv2.VideoCapture(1) # 0 for windows, 1 for mac
+        else:
+            cap = cv2.VideoCapture(0) # 0 for windows, 1 for mac 
     else:
         nao.InitProxy("192.168.0.102",[0])
         #nao.InitPose()
@@ -168,7 +174,13 @@ if __name__=="__main__":
                    font_scale, font_color, font_thickness, cv2.LINE_AA)
             image = cv2.putText(im, 'face_detect_time = '+str(face_detect_time), (50,70), font, 
                    font_scale, font_color, font_thickness, cv2.LINE_AA)
-
+            if face_detect_time+im_read_time>0:
+                image = cv2.putText(im, 'framerate = ' + str(int(1/(face_detect_time + im_read_time))), (50,30), font, 
+                   font_scale, font_color, font_thickness, cv2.LINE_AA)    
+            if len(faces)>0:
+                #print(faces[0])
+                image = cv2.putText(im, '1st face location = '+str((faces[0][0],faces[0][1])), (50,90), font, 
+                   font_scale, font_color, font_thickness, cv2.LINE_AA)
             cv2.imshow("frame",im)
             key=cv2.waitKey(10)     
                 

@@ -67,7 +67,17 @@ import sys
 import os
 import csv
 import numpy as np
-import naoqi
+
+try:
+    import naoqi
+except ImportError:
+    print("Error importing 'naoqi'.")
+    print("Trying to append pynaoqi manually...")
+    #sys.path.append(r"c:\development\pynaoqi-python2.7-2.5.7.1-win32-vs2013\lib")
+    sys.path.append(os.getcwd()+r"\pynaoqi-python2.7-2.5.7.1-win32-vs2013\lib") # when coding paths, use raw strings with single backslash, or \\ or /
+    import naoqi
+    print("Done.\n")
+
 
 from collections import deque
 
