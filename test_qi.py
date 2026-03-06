@@ -44,10 +44,20 @@ def send_commands(session, text, x, y, theta):
 def get_sonar_data(session, robot="pepper"):
     # Simple example to get sonar data from memory.
     almemory = session.service("ALMemory")
+    sonar_service = session.service("ALSonar")
+
+    # Subscribe to sonars, this will launch sonars (at hardware level)
+    # and start data acquisition.
+    sonar_service.subscribe("myApplication")
+
 
     if robot == "pepper":
-        front_sonar = almemory.getData("Device/SubDeviceList/Platform/Front/Sonar/Sensor/Value")
-        back_sonar = almemory.getData("Device/SubDeviceList/Platform/Back/Sonar/Sensor/Value")
+        try:
+            front_sonar = almemory.getData("Device/SubDeviceList/Platform/Front/Sonar/Sensor/Value")
+            back_sonar = almemory.getData("Device/SubDeviceList/Platform/Back/Sonar/Sensor/Value")
+        except RuntimeError:
+            print("Cannot find sonar device values")
+            return None, None
         print("Front sonar: " + str(front_sonar))
         print("Back sonar: " + str(back_sonar))
         return front_sonar, back_sonar
@@ -57,6 +67,10 @@ def get_sonar_data(session, robot="pepper"):
         print("Left sonar: " + str(left_sonar))
         print("Right sonar: " + str(right_sonar))
         return left_sonar, right_sonar
+
+    # Unsubscribe from sonars, this will stop sonars (at hardware level)
+    sonar_service.unsubscribe("myApplication")
+
 # # Create a proxy to ALLandMarkDetection
 # markProxy = app.session.service("ALLandMarkDetection")
 # # Subscribe to the ALLandMarkDetection extractor
@@ -68,10 +82,22 @@ def get_sonar_data(session, robot="pepper"):
 
 def get_image(session):
     cameraProxy = session.service("ALVideoDevice")
-    resolution_id = 2    # VGA
+    kResolution = 2    # VGA
     kALColorSpace = 11   # RGB
     framerate = 30
-    nameId = cameraProxy.subscribe("test_qi", resolution_id, kALColorSpace, framerate) #0, 0, 10
+    kCamera = 0
+##    Parameter ID      Name 	ID Value 	More details ...
+##    AL::kTopCamera 	0 	2D Cameras
+##    AL::kBottomCamera 1
+##    AL::kDepthCamera 	2 	Reconstructed 3D Sensor
+##    AL::kStereoCamera 3 	Stereo Camera
+    try:
+        #naoqi 2.5
+        nameId = cameraProxy.subscribe("test_qi", kResolution, kALColorSpace, framerate) #0, 0, 10
+    except AttributeError:
+        #naoqi 2.8
+        nameId = cameraProxy.subscribeCamera("test_qi", kCamera, kResolution, kALColorSpace, framerate)
+        
     img =cameraProxy.getImageRemote(nameId)
     print("Image width: " + str(img[0]))
     print("Image height: " + str(img[1]))
