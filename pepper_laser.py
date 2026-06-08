@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from naoqi import ALProxy
+#from naoqi import ALProxy
+import qi
 import numpy as np
 import matplotlib as mpl
 mpl.use('TkAgg')
@@ -190,14 +191,21 @@ def get_laser_scan(polar=True):
 ##  2.03444394 2.03444394 2.03444394]]
     return scan_data
 
+def connect_robot(robot_ip, robot_port):
+    print("connecting to robot " + "tcp://" + robot_ip + ":" + str(robot_port))
+    return qi.Application(url= "tcp://"+robot_ip+":"+str(robot_port))
+
 if __name__=="__main__":    
-    #pepper_ip = "192.168.0.116"
-    #pepper_port = 9559
-    pepper_ip = "127.0.0.1"
-    pepper_port = 49713
+    pepper_ip = "192.168.0.113"
+    pepper_port = 9559
+    #pepper_ip = "127.0.0.1"
+    #pepper_port = 49713
     
     # create proxy on ALMemory
-    memProxy = ALProxy("ALMemory",pepper_ip,pepper_port)
+    app = connect_robot(pepper_ip, pepper_port)
+    app.start()
+    session = app.session
+    memProxy = session.service("ALMemory")
 
     print( "Shovel Seg01 X Y Seg02 X Y Seg03 X Y")
     data = get_sensor_data(laser_shovel,True)

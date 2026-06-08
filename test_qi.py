@@ -2,8 +2,9 @@ import qi
 import time
 
 #tcp://192.168.68.151:9559
-robot_ip="127.0.0.1"
-robot_port=62359
+robot_ip="192.168.0.113"
+#robot_ip="127.0.0.1"
+robot_port=9559
 
 app = None
 
@@ -55,21 +56,25 @@ def get_sonar_data(session, robot="pepper"):
         try:
             front_sonar = almemory.getData("Device/SubDeviceList/Platform/Front/Sonar/Sensor/Value")
             back_sonar = almemory.getData("Device/SubDeviceList/Platform/Back/Sonar/Sensor/Value")
+            result = (front_sonar, back_sonar)
+            print("Front sonar: " + str(front_sonar))
+            print("Back sonar: " + str(back_sonar))
         except RuntimeError:
             print("Cannot find sonar device values")
-            return None, None
-        print("Front sonar: " + str(front_sonar))
-        print("Back sonar: " + str(back_sonar))
-        return front_sonar, back_sonar
+            result = ( None, None)
+        
+        
     else:  # nao    
         left_sonar = almemory.getData("Device/SubDeviceList/US/Left/Sensor/Value")
         right_sonar = almemory.getData("Device/SubDeviceList/US/Right/Sensor/Value")
         print("Left sonar: " + str(left_sonar))
         print("Right sonar: " + str(right_sonar))
-        return left_sonar, right_sonar
-
+        result = (left_sonar, right_sonar)
+        
     # Unsubscribe from sonars, this will stop sonars (at hardware level)
     sonar_service.unsubscribe("myApplication")
+    
+    return result
 
 # # Create a proxy to ALLandMarkDetection
 # markProxy = app.session.service("ALLandMarkDetection")
@@ -115,6 +120,8 @@ def display_image(img):
     image_array = np.frombuffer(array, dtype=np.uint8)
     # Reshape the array to the correct dimensions (height, width, channels)
     image_array = image_array.reshape((image_height, image_width, 3))
+    image_array = cv2.cvtColor(image_array,   cv2.COLOR_RGB2BGR) #convert from RGB to BGR, which is the format used by OpenCV
+    
     # Display the image using OpenCV
     cv2.imshow("Captured Image", image_array)
     cv2.waitKey(0)
@@ -142,7 +149,7 @@ if __name__ == "__main__":
     
     # examples of sending commands, getting sonar data, and getting images
     send_commands(session,"Hello, I am moving forward while speaking.", 1, 0, 0)
-    get_sonar_data(session, robot="nao")
+    get_sonar_data(session, robot="pepper")
     img = get_image(session)
     display_image(img)  # requires OpenCV to be installed using pip install opencv-python=
 

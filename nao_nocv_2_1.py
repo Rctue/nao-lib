@@ -1446,11 +1446,11 @@ def DetectSoundLocation():
     return detected, timestamp, soundInfo
 
 if __name__ == "__main__":
-    print GetAvailableModules(), "\n"
-    print GetAvailableGestures(), "\n"
-    print GetAvailableLEDPatterns(), "\n"
-    print GetAvailableDialogs(), "\n"
-    
+    print(GetAvailableModules(), "\n")
+    print(GetAvailableGestures(), "\n")
+    print(GetAvailableLEDPatterns(), "\n")
+    print(GetAvailableDialogs(), "\n")
+
     
 
 
