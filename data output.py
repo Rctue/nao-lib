@@ -57,29 +57,76 @@ data_laser_vertical = [1.7741001844406128, 0.26799774169921875, 1.77410018444061
 data_laser_horizontal_front = [6.536083698272705, 2.5059142112731934, 0.8789654970169067, 0.27891576290130615, 0.8938462138175964, 0.22674506902694702, 0.9894917011260986, 0.18988201022148132, 2.7259786128997803, 0.35847848653793335, 4.316259860992432, 0.3109394311904907, 1.2001124620437622, 0.015692872926592827, 1.1989585161209106, -0.05490745231509209, 1.2993327379226685, -0.13641250133514404, 2.55708646774292, -0.421699196100235, 2.6818032264709473, -0.6061331629753113, 3.7950096130371094, -1.095881462097168, 6.599373817443848, -2.3341526985168457, 1.7752439975738525, -0.7480522990226746, 1.4224181175231934, -0.7005590796470642]
 
 #mimic sonar:
-data_laser_horizontal_front_2 = [6.536083698272705, 2.5059142112731934, 6.6721343994140625, 2.117220163345337, 0.9334741830825806, 0.23679763078689575, 1.0128333568572998, 0.19436122477054596, 2.7259786128997803, 0.35847848653793335, 4.316259860992432, 0.3109394311904907, 1.2001124620437622, 0.015692872926592827, 1.1989585161209106, -0.05490745231509209, 1.2993327379226685, -0.13641250133514404, 2.55708646774292, -0.421699196100235, 2.6818032264709473, -0.6061331629753113, 3.7950096130371094, -1.095881462097168, 6.599373817443848, -2.3341526985168457, 1.7752439975738525, -0.7480522990226746, 1.4224181175231934, -0.7005590796470642]
+data_laser_horizontal_front_2 = [1.6565239429473877, 0.6351061463356018, 2.008291244506836, 0.6372765302658081, 2.375602960586548, 0.6026274561882019, 2.8751578330993652, 0.5517385601997375, 6.940247058868408, 0.912673830986023, 4.771970272064209, 0.3437684178352356, 6.999401569366455, 0.0915253534913063, 3.1270718574523926, -0.14320725202560425, 3.113239049911499, -0.3268483281135559, 3.8974273204803467, -0.6427400708198547, 2.8555896282196045, -0.6454118490219116, 6.725214004516602, -1.9420340061187744, 6.599373817443848, -2.3341526985168457, 6.450692176818848, -2.7181923389434814, 6.279684543609619, -3.092824697494507]
 data_sonar = [10, 0.36611193505144823]
 
+position_front_laser = [0.12960, -0.02700, -0.30010, 0.00000, 1.00000, 0.00000] # x (m), y (m), z (m), roll (deg), pitch (deg), yaw (deg)
+position_left_laser = [-0.08600, 0.10100, -0.30000, -1.00000, 0.00000, 90.0000] # x (m), y (m), z (m), roll (deg), pitch (deg), yaw (deg)
+position_right_laser = [-0.08600, -0.10100, -0.30000, 1.00000, 0.00000, -90.0000] # x (m), y (m), z (m), roll (deg), pitch (deg), yaw (deg)
 
-fig,ax = plt.subplots(1,3)
+def get_laser_scan(polar=True):
+    
+    # data_front = get_sensor_data(laser_front, verbose=False)
+    # data_left = get_sensor_data(laser_left,  verbose=False)
+    # data_right = get_sensor_data(laser_right, verbose=False)
+
+    data_front = np.asarray(data_laser_horizontal_front) # for testing without robot
+    data_left = np.asarray(data_laser_horizontal_front_2) # for testing without robot
+    data_right = np.asarray(data_laser_horizontal_front_2) # for testing without robot
+    
+    x_front = data_front[0::2]
+    y_front = data_front[1::2]
+    y_left = data_left[0::2]
+    x_left = data_left[1::2]*(-1.0)  # only works with numpy arrays
+    y_right = data_right[0::2]*(-1.0)
+    x_right = data_right[1::2]
+    
+    xdata = np.concatenate((x_left, x_front, x_right))
+    ydata = np.concatenate((y_left, y_front, y_right))
+    
+    if polar:
+        scan_data=np.stack((np.arctan2(ydata,xdata), np.sqrt((xdata)**2 + (ydata)**2)))
+    else:
+        scan_data = np.stack((xdata, ydata))
+        
+    return scan_data
+
+
+fig,ax = plt.subplots(1,2)
 data_x = np.array(data_laser_horizontal_front[0::2])
 data_y = np.array(data_laser_horizontal_front[1::2])
 ax[0].plot(data_x, data_y,'ro-')
+
+data_x2 = np.array(data_laser_horizontal_front_2[0::2])
+data_y2 = np.array(data_laser_horizontal_front_2[1::2])
+ax[0].plot(data_x2, data_y2,'go-')
 ax[0].set_xlabel('X (m)')
 ax[0].set_ylabel('Y (m)')
 
 
 angles = np.arctan2(data_y, data_x)
+angles = angles - angles[7] # set central front laser to 0 degrees (it is -2.622 deg otherwise)
 distances = np.sqrt(data_x**2 + data_y**2)
 #fig2, ax2 = plt.subplots()#subplot_kw={'projection': 'polar'})
 ax[1].plot(angles/np.pi*180.0, distances,'bo-')
+
+angles2 = np.arctan2(data_y2, data_x2)
+angles2 = angles2 - angles2[7] # set central front laser to 0 degrees (it is -2.622 deg otherwise)
+distances2 = np.sqrt(data_x2**2 + data_y2**2)
+ax[1].plot(angles2/np.pi*180.0, distances2,'go-')
 ax[1].set_xlabel('Angle (degrees)')
 ax[1].set_ylabel('Distance (m)')
 
-#fig3, ax3 = plt.subplots(subplot_kw={'projection': 'polar'})
-ax[2]=plt.subplot(1,3,3,projection='polar')
-ax[2].plot(angles-np.pi/2, distances,'ro-')
-ax[2].plot(angles, distances,'go-')
-ax[2].plot(angles+np.pi/2, distances,'bo-')
+fig2, ax2 = plt.subplots(subplot_kw={'projection': 'polar'})
+#ax2=plt.subplot(1,3,3,projection='polar')
+ax2.plot(angles2-np.pi/2, distances2,'ro-')
+ax2.plot(angles, distances,'go-')
+ax2.plot(angles2+np.pi/2, distances2,'bo-')
 
+fig3, ax3 = plt.subplots(subplot_kw={'projection': 'polar'})
+scan_data = get_laser_scan(polar=True)
+ax3.plot(scan_data[0]-scan_data[0][22], scan_data[1],'ro-') # set central front laser to 0 degrees (it is -2.622 deg otherwise)
+#ax[3]=plt.subplot(1,4,4,projection='polar')
 plt.show()
+
+
