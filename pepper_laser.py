@@ -161,13 +161,13 @@ def get_sensor_data(sensor_list, verbose = False):
 
 def get_laser_scan(polar=True):
     
-    data_front = get_sensor_data(laser_front, verbose=False)
-    data_left = get_sensor_data(laser_left,  verbose=False)
-    data_right = get_sensor_data(laser_right, verbose=False)
+    data_front = np.asarray(get_sensor_data(laser_front, verbose=False)) # force to be numpy array for easier slicing and math operations
+    data_left = np.asarray(get_sensor_data(laser_left, verbose=False))
+    data_right = np.asarray(get_sensor_data(laser_right, verbose=False))
 
-    # data_front = data_laser_horizontal_front # for testing without robot
-    # data_left = data_laser_horizontal_front # for testing without robot
-    # data_right = data_laser_horizontal_front # for testing without robot
+    # data_front = np.asarray(data_laser_horizontal_front) # for testing without robot
+    # data_left = np.asarray(data_laser_horizontal_front) # for testing without robot
+    # data_right = np.asarray(data_laser_horizontal_front) # for testing without robot
     
     x_front = data_front[0::2]
     y_front = data_front[1::2]
@@ -222,7 +222,11 @@ if __name__=="__main__":
     print(get_mimic_sonar([-3,0],[0,3]))
 
     plt.ion()
-    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    polar = False
+    if polar:
+        fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    else:
+        fig, ax = plt.subplots()
     
     count=0
     while count<1:
