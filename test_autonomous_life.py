@@ -40,6 +40,13 @@ def set_activities(aut_life_service, dict_activities_enabled):
     results = aut_life_service.getAutonomousAbilitiesStatus()
     return results
 
+def list_system_services(session):
+    systemProxy = session.service("ALSystem") # does not work with simulated robot
+    
+    print(systemProxy.robotName()) 
+    byte_array = systemProxy.robotIcon()
+    print(systemProxy.systemVersion())
+    print(systemProxy.timezone())
 
 def subscribe_to_event(memProxy, event_name):
     subscriber =memProxy.subscriber(event_name)
@@ -51,9 +58,9 @@ def on_event_detected(name, state, id):
     print("Event " + name + " changed to state " + state + " with id " + str(id))
 
 if __name__=="__main__":    
-    #pepper_ip = "192.168.0.113"
+    pepper_ip = "192.168.0.111"
     pepper_port = 9559
-    pepper_ip = "127.0.0.1"
+    #pepper_ip = "127.0.0.1"
     #pepper_port = 49713
     
     # create proxy on ALMemory
@@ -62,8 +69,13 @@ if __name__=="__main__":
     session = app.session
     memProxy = session.service("ALMemory")
     aut_life_service = session.service("ALAutonomousLife")
-    subscribe_to_event(memProxy, "AutonomousLife/State") # doesn't seem to work with simulated robot
+    #subscribe_to_event(memProxy, "AutonomousLife/State") # doesn't seem to work with simulated robot
     
+    input("Press Enter to list system services")
+    list_system_services(session)
+    
+    
+    input("Press Enter to check Autonomous Life state and toggle it")
     #autonomous_life_state = memProxy.getData("AutonomousLife/State")
     autonomous_life_state = aut_life_service.getState()
     print("AutonomousLife/State: " + autonomous_life_state)
@@ -71,10 +83,14 @@ if __name__=="__main__":
         print("Enabling Autonomous Life")
         #memProxy.insertData("AutonomousLife/State", "solitary")
         aut_life_service.setState("solitary")
+        
+        # does not work on naoqi2.1.4, but works on 2.5
         set_activities(aut_life_service, {"BasicAwareness": True, "BackgroundMovement": True, "ListeningMovement": True, "SpeakingMovement": True, "AutonomousBlinking": True})
     else:
         print("Disabling Autonomous Life")
         aut_life_service.setState("disabled")
+        
+        # does not work on naoqi2.1.4, but works on 2.5
         set_activities(aut_life_service, {"BasicAwareness": False, "BackgroundMovement": False, "ListeningMovement": False, "SpeakingMovement": False, "AutonomousBlinking": False})
     
     
@@ -88,13 +104,9 @@ if __name__=="__main__":
     print("I am now in " + memProxy.getData("AutonomousLife/State") + " mode, and sleeping for 5 seconds.")
     time.sleep(5)
     print("I am now activating some autonomous life activities")
-    aut_life_service.setAutonomousAbilityEnabled("BasicAwareness", True)
+    aut_life_service.setAutonomousAbilityEnabled("BasicAwareness", True) # does not work on naoqi2.1.4, but works on 2.5
     aut_life_service.setAutonomousAbilityEnabled("AutonomousBlinking", True)
     list_activities(aut_life_service)
    
-    # time.sleep(3)
-    # print("Raising event AutonomousLife/State")
-    # memProxy.raiseEvent("AutonomousLife/State", ["key", "value","message"])
-    # time.sleep(5)
     
     
