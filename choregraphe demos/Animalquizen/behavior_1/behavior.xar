@@ -11,7 +11,10 @@
     <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
     <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
     <Input name="FrontTactilTouched" type="0" type_size="1" nature="4" stm_value_name="FrontTactilTouched" inner="1" tooltip="FrontTactilTouched desc" id="4" />
-    <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="5" />
+    <Input name="RearTactilTouched" type="0" type_size="1" nature="4" stm_value_name="RearTactilTouched" inner="1" tooltip="RearTactilTouched desc" id="5" />
+    <Input name="LeftBumperPressed" type="0" type_size="1" nature="4" stm_value_name="LeftBumperPressed" inner="1" tooltip="LeftBumperPressed desc" id="6" />
+    <Input name="RightBumperPressed" type="0" type_size="1" nature="4" stm_value_name="RightBumperPressed" inner="1" tooltip="RightBumperPressed desc" id="7" />
+    <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="8" />
     <Timeline enable="0">
       <BehaviorLayer name="behavior_layer1">
         <BehaviorKeyframe name="keyframe1" index="1">
@@ -652,7 +655,7 @@ class MyClass(GeneratedClass):
               <Resource name="Standing" type="Lock" timeout="1" />
               <Resource name="All motors" type="Lock" timeout="1" />
             </Box>
-            <Box name="If" id="4" localization="8" tooltip="Test a condition and stimulate the then or else outputs depending on the boolean&#x0A;value of the condition.&#x0A;The condition can be set in parameters." x="723" y="202">
+            <Box name="If" id="4" localization="8" tooltip="Test a condition and stimulate the then or else outputs depending on the boolean&#x0A;value of the condition.&#x0A;The condition can be set in parameters." x="721" y="93">
               <bitmap>media/images/box/box-diagram.png</bitmap>
               <script language="4">
                 <content>
@@ -791,7 +794,7 @@ class MyClass(GeneratedClass):
               <Input name="onStart" type="1" type_size="1" nature="1" inner="0" tooltip="To send the text on the output." id="2" />
               <Output name="onStopped" type="3" type_size="1" nature="2" inner="0" tooltip="The text you entered." id="3" />
             </Box>
-            <Box name="Say Text (1)" id="8" localization="8" tooltip="Say the text received on its input." x="964" y="37">
+            <Box name="Say Text (1)" id="8" localization="8" tooltip="Say the text received on its input." x="1135" y="37">
               <bitmap>media/images/box/interaction/say.png</bitmap>
               <script language="4">
                 <content>
@@ -847,7 +850,7 @@ class MyClass(GeneratedClass):
               <Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="6" />
               <Resource name="Speech" type="Lock" timeout="0" />
             </Box>
-            <Box name="Text Edit (1)" id="9" localization="8" tooltip="Send the text you entered when the input is stimulated." plugin="textedit_plugin" x="727" y="45">
+            <Box name="Text Edit (1)" id="9" localization="8" tooltip="Send the text you entered when the input is stimulated." plugin="textedit_plugin" x="886" y="37">
               <bitmap>media/images/box/interaction/vocabulary.png</bitmap>
               <script language="4">
                 <content>
@@ -1826,7 +1829,7 @@ class MyClass(GeneratedClass):
               <Parameter name="Enable word spotting" inherits_from_parent="0" content_type="0" value="0" default_value="0" tooltip="If this option is not activated the robot will only understand exact expressions. If it is, he will spot the exact expressions even in the middle of a sentence.&#x0A;&#x0A;!!Warning!! This option is only available with the speech recognition module using Nuance (ie in Atom version of the robot)." id="10" />
               <Resource name="Speech recognition" type="Lock" timeout="0" />
             </Box>
-            <Box name="Speech Reco. (3)" id="22" localization="8" tooltip="Recognize a word from a list of words set in the box parameters.&#x0A;&#x0A;V1.1.0&#x0A;" x="551" y="145">
+            <Box name="Speech Reco. (3)" id="22" localization="8" tooltip="Recognize a word from a list of words set in the box parameters.&#x0A;&#x0A;V1.1.0&#x0A;" x="554" y="44">
               <bitmap>media/images/box/interaction/ear.png</bitmap>
               <script language="4">
                 <content>
@@ -1911,7 +1914,7 @@ class MyClass(GeneratedClass):
               <Parameter name="Enable word spotting" inherits_from_parent="0" content_type="0" value="0" default_value="0" tooltip="If this option is not activated the robot will only understand exact expressions. If it is, he will spot the exact expressions even in the middle of a sentence.&#x0A;&#x0A;!!Warning!! This option is only available with the speech recognition module using Nuance (ie in Atom version of the robot)." id="10" />
               <Resource name="Speech recognition" type="Lock" timeout="0" />
             </Box>
-            <Box name="Say Text (11)" id="2" localization="8" tooltip="Say the text received on its input." x="365" y="141">
+            <Box name="Say Text (11)" id="2" localization="8" tooltip="Say the text received on its input." x="423" y="42">
               <bitmap>media/images/box/interaction/say.png</bitmap>
               <script language="4">
                 <content>
@@ -1989,7 +1992,7 @@ class MyClass(GeneratedClass):
               <Input name="onStart" type="1" type_size="1" nature="1" inner="0" tooltip="To send the text on the output." id="2" />
               <Output name="onStopped" type="3" type_size="1" nature="2" inner="0" tooltip="The text you entered." id="3" />
             </Box>
-            <Box name="Stand Up" id="5" localization="8" tooltip="the robot tries to stand up from any position for a number of tries.&#x0A;&#x0A;Note: The number of tries can be set in parameters." x="60" y="299">
+            <Box name="Stand Up" id="5" localization="8" tooltip="the robot tries to stand up from any position for a number of tries.&#x0A;&#x0A;Note: The number of tries can be set in parameters." x="906" y="149">
               <bitmap>media/images/box/movement/stand.png</bitmap>
               <script language="4">
                 <content>
@@ -2345,6 +2348,65 @@ class MyClass(GeneratedClass):
               </Parameter>
               <Parameter name="Value to compare" inherits_from_parent="0" content_type="3" value="yes" default_value="0" custom_choice="0" tooltip="This is the value which is compared to the input value." id="6" />
             </Box>
+            <Box name="Motor On/Off" id="39" localization="8" tooltip="Stiffen or loosen all motors. Does not work on Pepper, use wakeUp / rest boxes instead." x="1651" y="379">
+              <bitmap>media/images/box/movement/stiffness.png</bitmap>
+              <script language="4">
+                <content>
+                  <![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.motion = self.session().service("ALMotion")
+
+    def onUnload(self):
+        pass
+
+    def onInput_onSet(self):
+        if( self.getParameter("Action") == "On" ):
+            stiffness = 1
+        else:
+            stiffness = 0
+        self.motion.stiffnessInterpolation("Body", stiffness, 0.1, _async=True)
+        time.sleep(0.1)
+        self.onReady() #~ activate output of the box]]>
+                </content>
+              </script>
+              <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+              <Input name="onSet" type="1" type_size="1" nature="1" inner="0" tooltip="When this input is stimulated, all motors are stiffened or loosened." id="2" />
+              <Output name="onReady" type="1" type_size="1" nature="2" inner="0" tooltip="Signal sent when it is done." id="3" />
+              <Parameter name="Action" inherits_from_parent="0" content_type="3" value="Off" default_value="On" custom_choice="0" tooltip="Choose if you want to stiffen (On) or loosen (Off) all motors." id="4">
+                <Choice value="Off" />
+                <Choice value="On" />
+              </Parameter>
+              <Resource name="All motors" type="Lock" timeout="0" />
+            </Box>
+            <Box name="Only Once" id="40" localization="8" tooltip="This box&apos;s output is stimulated only the first time the onSignal input is.&#x0A;&#x0A;Note: It is reset when the diagram containing the box is unloaded." x="168" y="1183">
+              <bitmap>media/images/box/loop.png</bitmap>
+              <script language="4">
+                <content>
+                  <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.bFirstTime = True
+
+    def onUnload(self):
+        self.bFirstTime = True
+
+    def onInput_onSignal(self):
+        if( self.bFirstTime ):
+            self.bFirstTime = False
+            self.firstTime()]]>
+                </content>
+              </script>
+              <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+              <Input name="onSignal" type="1" type_size="1" nature="1" inner="0" tooltip="The signal that must pass only once." id="2" />
+              <Output name="firstTime" type="1" type_size="1" nature="2" inner="0" tooltip="Signal sent first time the onSignal input is stimulated." id="3" />
+            </Box>
             <Link inputowner="7" indexofinput="2" outputowner="6" indexofoutput="3" />
             <Link inputowner="8" indexofinput="2" outputowner="9" indexofoutput="3" />
             <Link inputowner="9" indexofinput="2" outputowner="4" indexofoutput="4" />
@@ -2382,10 +2444,8 @@ class MyClass(GeneratedClass):
             <Link inputowner="2" indexofinput="2" outputowner="30" indexofoutput="3" />
             <Link inputowner="22" indexofinput="2" outputowner="2" indexofoutput="4" />
             <Link inputowner="22" indexofinput="3" outputowner="22" indexofoutput="5" />
-            <Link inputowner="30" indexofinput="2" outputowner="0" indexofoutput="2" />
             <Link inputowner="6" indexofinput="2" outputowner="5" indexofoutput="4" />
             <Link inputowner="5" indexofinput="2" outputowner="4" indexofoutput="3" />
-            <Link inputowner="0" indexofinput="5" outputowner="14" indexofoutput="4" />
             <Link inputowner="14" indexofinput="2" outputowner="8" indexofoutput="4" />
             <Link inputowner="36" indexofinput="2" outputowner="37" indexofoutput="3" />
             <Link inputowner="35" indexofinput="2" outputowner="36" indexofoutput="4" />
@@ -2397,6 +2457,10 @@ class MyClass(GeneratedClass):
             <Link inputowner="37" indexofinput="2" outputowner="25" indexofoutput="4" />
             <Link inputowner="5" indexofinput="2" outputowner="38" indexofoutput="3" />
             <Link inputowner="14" indexofinput="2" outputowner="38" indexofoutput="4" />
+            <Link inputowner="39" indexofinput="2" outputowner="14" indexofoutput="4" />
+            <Link inputowner="0" indexofinput="8" outputowner="39" indexofoutput="3" />
+            <Link inputowner="14" indexofinput="2" outputowner="0" indexofoutput="6" />
+            <Link inputowner="30" indexofinput="2" outputowner="0" indexofoutput="2" />
           </Diagram>
         </BehaviorKeyframe>
       </BehaviorLayer>

@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<package version="1.0.0" installOnlyAtStartup="false" uuid="animal_quiz_v1">
+<package version="1.0.0" uuid="animal_quiz_v1" installOnlyAtStartup="false">
  <names>
   <name lang="en_US">animal_quiz</name>
  </names>
