@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package version="1.0.0" installOnlyAtStartup="false" uuid="animal_quiz_v1">
+ <names>
+  <name lang="en_US">animal_quiz</name>
+ </names>
+ <descriptionLanguages>
+  <language>en_US</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="behavior_1">
+   <nature></nature>
+   <names>
+    <name lang="en_US">AnimalQuiz</name>
+   </names>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>
