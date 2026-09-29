@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package uuid="fontys_dance_script_25-b3b856" version="0.0.0">
+ <names>
+  <name lang="en_US">Fontys_dance_script_2.5</name>
+ </names>
+ <descriptionLanguages>
+  <language>en_US</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="Fontys_dance_script">
+   <nature>interactive</nature>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>
