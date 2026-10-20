@@ -32,6 +32,8 @@ if __name__ == "__main__":
                         help="port number, the default value is OK in most cases")
 
     args = parser.parse_args()
+    args.ip = "192.168.0.111"
+    args.port = 9559
     session = qi.Session()
     try:
         session.connect("tcp://{}:{}".format(args.ip, args.port))
